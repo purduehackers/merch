@@ -19,6 +19,14 @@
 
 @media (max-width: 640px) {
   #concept {
-    display: none;
+    top: auto;
+    left: 0;
+    top: 0%;
+    width: clamp(55vw, 60vw, 65vw);
+    height: auto;
+    max-width: none;
+    transform: rotate(-10deg);
+    transform-origin: left bottom;
+    z-index: 2;
   }
 }
