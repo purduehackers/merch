@@ -8,8 +8,7 @@ function raf(time: number) {
 }
 requestAnimationFrame(raf);
 
-// 0 = black (hero), 1 = white — driven by scroll position. Shared so the canvas
-// (scene.ts) and the page background transition together.
+// 0 = #0D0D0D (hero), 1 = white — driven by scroll position.
 export function bgLevel(): number {
   const start = window.innerHeight * 0.4;
   const end = window.innerHeight;
@@ -17,7 +16,8 @@ export function bgLevel(): number {
 }
 
 function update() {
-  const v = Math.round(bgLevel() * 255);
+  const dark = 0x0d;
+  const v = Math.round(dark + bgLevel() * (255 - dark));
   document.body.style.backgroundColor = `rgb(${v}, ${v}, ${v})`;
 }
 lenis.on('scroll', update);

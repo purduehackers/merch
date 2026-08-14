@@ -1,33 +1,168 @@
+@font-face {
+  font-family: pixel;
+  src: url("/fonts/PixelHackers.woff2") format("woff2");
+}
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: #0D0D0D;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+body::-webkit-scrollbar {
+  display: none;
+}
+.archive-navbar {
+  font-family: pixel;
+  color: white;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  pointer-events: none;
+}
+.archive-navbar h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: normal;
+}
+.archive-navbar a {
+  color: white;
+  text-decoration: none;
+  pointer-events: auto;
+}
 .archive-content {
-    overflow-x: hidden;
+  overflow-x: hidden;
+  pointer-events: none; /* clicks pass through to the shape canvas */
+}
+.archive-content * {
+  pointer-events: none;
 }
 .archive-container {
-    display: flex;
-    flex-direction: column;
-    margin: 0 auto;
-    height: 100vh;
-    width: 100vw;
-    position: relative;
+  position: relative;
+  width: 100%;
+  /* last image top + image height + bottom air */
+  height: 400vh;
 }
+
 .archive-container .image {
-    position: absolute;
-    width: 250px;
-    height: 400px;
-    object-fit: cover;
+  position: absolute;
+  width: min(250px, 42vw);
+  height: auto;
+  display: block;
 }
+
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: auto;
+}
+
+/* even vertical rhythm (~48vh steps), alternating sides */
 .image.one {
-    top: 0;
-    left:10%;
+  top: 10vh;
+  left: 6%;
 }
 .image.two {
-    top:25%;
-    left: 80%;
+  top: 58vh;
+  left: 58%;
 }
-    .image.three {
-    top:75%;
-    left: 60%;
+.image.three {
+  top: 106vh;
+  left: 14%;
 }
 .image.four {
-    top: 100%;
-    left: 25%;
+  top: 154vh;
+  left: 62%;
+}
+.image.five {
+  top: 202vh;
+  left: 8%;
+}
+.image.six {
+  top: 250vh;
+  left: 52%;
+}
+.image.seven {
+  top: 298vh;
+  left: 18%;
+}
+.image.eight {
+  top: 346vh;
+  left: 58%;
+}
+
+@media (max-width: 640px) {
+  #scene {
+    pointer-events: none;
+    touch-action: pan-y;
+  }
+
+  .archive-navbar {
+    padding: 1rem;
+  }
+
+  .archive-navbar h1 {
+    font-size: 1.125rem;
+  }
+
+  .archive-container {
+    height: 440vh;
+  }
+
+  .archive-container .image {
+    width: min(220px, 72vw);
+  }
+
+  /* single-column zigzag with even vertical rhythm */
+  .image.one {
+    top: 10vh;
+    left: 8%;
+    right: auto;
+  }
+  .image.two {
+    top: 62vh;
+    left: auto;
+    right: 8%;
+  }
+  .image.three {
+    top: 114vh;
+    left: 8%;
+    right: auto;
+  }
+  .image.four {
+    top: 166vh;
+    left: auto;
+    right: 8%;
+  }
+  .image.five {
+    top: 218vh;
+    left: 8%;
+    right: auto;
+  }
+  .image.six {
+    top: 270vh;
+    left: auto;
+    right: 8%;
+  }
+  .image.seven {
+    top: 322vh;
+    left: 8%;
+    right: auto;
+  }
+  .image.eight {
+    top: 374vh;
+    left: auto;
+    right: 8%;
+  }
 }

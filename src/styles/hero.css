@@ -1,13 +1,14 @@
 .container {
-    position: relative; /* anchor the hero's absolutely-positioned children */
+    position: relative; 
+    /* anchor the hero's absolutely-positioned children */
 }
 #concept {
     position: absolute; /* lives inside the hero, scrolls away with it */
     top: 50%;
     left: 80%;
-    width: 45vw;
-    max-width: 620px;
+    width: 544px;
     height: auto;
+    max-width: none;
     transform: translate(-50%, -50%) rotate(-10deg);
     z-index: 10; /* highest layer — sits above the canvas */
     pointer-events: none; /* let clicks/drags pass through to the shapes */
@@ -16,4 +17,8 @@
     display:none;
 }
 
-  
+@media (max-width: 640px) {
+  #concept {
+    display: none;
+  }
+}

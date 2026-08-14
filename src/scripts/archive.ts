@@ -19,7 +19,7 @@ const canvas = document.getElementById('scene') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
 
 const engine = Engine.create();
-engine.gravity.y = 1;
+engine.gravity.y = 0;
 // more solver iterations + tighter slop => far less clipping between big shapes
 engine.positionIterations = 14;
 engine.velocityIterations = 12;
@@ -141,29 +141,29 @@ function buildShape(spec: any, x: number, y: number) {
   Composite.add(engine.world, body);
 }
 
-// stack them in a column above the screen with a guaranteed vertical gap, so they
-// rain down one at a time (and never spawn overlapping each other) and pile up
+// place each shape in its own grid cell (partial rows centered) with light jitter
 function spawnAll() {
-  const dropX = W * 0.14;
-  const size = Math.max(58, Math.min(120, Math.min(W, H) * 0.085)); // same size buildShape uses
-  const gap = size * 3.2; // > the largest shape's extent, so adjacent spawns can't overlap
+  const size = Math.max(58, Math.min(120, Math.min(W, H) * 0.085));
+  const n = SPECS.length;
+  const cols = 3;
+  const rows = Math.ceil(n / cols);
+  const padX = size * 1.5;
+  const padY = size * 1.5;
+  const cellW = (W - padX * 2) / cols;
+  const cellH = (H - padY * 2) / rows;
+  const jitter = Math.min(cellW, cellH) * 0.2;
+
   SPECS.forEach((spec, i) => {
-    buildShape(spec, dropX + rand(-20, 20), -gap * (i + 1));
+    const row = Math.floor(i / cols);
+    const col = i % cols;
+    const itemsInRow = Math.min(cols, n - row * cols);
+    const rowOffset = (cols - itemsInRow) / 2;
+    const x = padX + cellW * (col + rowOffset + 0.5) + rand(-jitter, jitter);
+    const y = padY + cellH * (row + 0.5) + rand(-jitter, jitter);
+    buildShape(spec, x, y);
   });
 }
 
-// ---- drawing ----
-function drawText() {
-  ctx.save();
-  ctx.translate(0, H);
-  ctx.scale(layout.scaleX, 1);
-  ctx.font = `${layout.fontSize}px "PolySans Relax", sans-serif`;
-  ctx.textBaseline = 'alphabetic';
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#ffffff'; 
-  ctx.fillText('MERCH', layout.xOrigin, 0);
-  ctx.restore();
-}
 
 function drawShape(b: any) {
   const { type, color, localVerts, radius, ring, cells, cellSide } = b.plugin;
@@ -241,7 +241,6 @@ function render() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = '#0D0D0D';
   ctx.fillRect(0, 0, W, H);
-  drawText();
   for (const b of shapes) drawShape(b);
 }
 

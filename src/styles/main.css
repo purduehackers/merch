@@ -15,9 +15,13 @@ body {
   padding: 0;
   min-height: 100%;
   background: #000;
-  overflow-x: hidden; /* no horizontal scroll */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  overflow-x: hidden;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+body::-webkit-scrollbar{
+  display: none;
 }
 
 /* Lenis smooth-scroll required styles */
@@ -67,4 +71,25 @@ html.lenis body {
   font-size: 2rem;
   color: #fff;
   padding-left: 20px;
+}
+
+@media (max-width: 640px) {
+  .link {
+    font-size: 2rem;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .descriptor {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 85%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    font-size: 2.25rem;
+    line-height: 1.05;
+    text-align: center;
+  }
 }

@@ -1,23 +1,56 @@
 ---
 import Layout from "../components/layout.astro";
-import { Image } from "astro:assets";
+import { Picture } from "astro:assets";
+
 import hoodie1 from "../assets/hoodie1.jpg";
 import hoodie2 from "../assets/hoodie2.jpg";
 import hoodie3 from "../assets/hoodie3.jpg";
 import hoodie4 from "../assets/hoodie4.jpg";
+import hoodie5 from "../assets/hoodie5.jpg";
+import hoodie6 from "../assets/hoodie6.jpg";
+import hoodie7 from "../assets/hoodie7.jpg";
+import hoodie8 from "../assets/hoodie8.jpg";
+
 import "../styles/archive.css";
+
+const hoodies = [
+  { src: hoodie1, class: "one", loading: "eager" as const },
+  { src: hoodie2, class: "two", loading: "eager" as const },
+  { src: hoodie3, class: "three", loading: "lazy" as const },
+  { src: hoodie4, class: "four", loading: "lazy" as const },
+  { src: hoodie5, class: "five", loading: "lazy" as const },
+  { src: hoodie6, class: "six", loading: "lazy" as const },
+  { src: hoodie7, class: "seven", loading: "lazy" as const },
+  { src: hoodie8, class: "eight", loading: "lazy" as const },
+];
 ---
 
 <Layout>
-    <section class="archive-navbar">
-        <h1>Archive</h1>
-    </section>
-    <section class="archive-content">
-        <div class="archive-container">
-            <Image src={hoodie1} alt=" " class="image one"/>
-            <Image src={hoodie2} alt=" " class="image two"/>
-            <Image src={hoodie3} alt=" " class="image three"/>
-            <Image src={hoodie4} alt=" " class="image four"/>
-        </div>
-    </section>
+  <canvas id="scene"></canvas>
+  <section class="archive-navbar">
+    <a href="/"> back </a>
+  </section>
+  <section class="archive-content">
+    <div class="archive-container">
+      {
+        hoodies.map((hoodie) => (
+          <Picture
+            src={hoodie.src}
+            class={`image ${hoodie.class}`}
+            formats={["avif", "webp"]}
+            width={250}
+            densities={[1.5, 2]}
+            quality={70}
+            loading={hoodie.loading}
+            decoding="async"
+            alt=""
+          />
+        ))
+      }
+    </div>
+  </section>
+  <script>
+    import "../scripts/archive.ts";
+    import "../scripts/scroll.ts";
+  </script>
 </Layout>

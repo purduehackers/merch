@@ -6,9 +6,17 @@ import "../styles/hero.css";
 
 <div class="container">
   <canvas id="scene"></canvas>
-  <Image id="concept" src={concept} alt="merch concept" />
+  <Image
+    id="concept"
+    src={concept}
+    alt="merch concept"
+    width={544}
+    height={982}
+    densities={[1, 2]}
+  />
   <h1 class="access">merch</h1>
   <p class="descriptor">for the doers, makers,<br> and builders</p>
+  <!-- <p class="descriptor">next drop fall 26</p> -->
   <a class="link" href="/archive">archive</a>
   <script>
     import "../scripts/scene.ts";
