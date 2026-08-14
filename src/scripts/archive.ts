@@ -244,18 +244,6 @@ function render() {
   for (const b of shapes) drawShape(b);
 }
 
-// ---- collision body: a single rectangle covering the whole MERCH text ----
-function buildTextBodies() {
-  for (const b of textBodies) Composite.remove(engine.world, b);
-  textBodies = [];
-
-  const boxH = layout.capHeight;
-  const wall = Bodies.rectangle(W / 2, H - boxH / 2, W, boxH, {
-    isStatic: true, friction: 0.6,
-  });
-  textBodies.push(wall);
-  Composite.add(engine.world, wall);
-}
 
 function buildWalls() {
   for (const b of walls) Composite.remove(engine.world, b);
@@ -263,7 +251,8 @@ function buildWalls() {
   walls = [
     Bodies.rectangle(W / 2, H + t / 2, W + t * 2, t, { isStatic: true }), // floor
     Bodies.rectangle(-t / 2, H / 2, t, H * 3, { isStatic: true }),          // left
-    Bodies.rectangle(W + t / 2, H / 2, t, H * 3, { isStatic: true }),       // right
+    Bodies.rectangle(W + t / 2, H / 2, t, H * 3, { isStatic: true }),  // right
+    Bodies.rectangle(W / 2, -t/2, W + t * 2, t, { isStatic: true })     //ceiling
   ];
   Composite.add(engine.world, walls);
 }
@@ -310,6 +299,8 @@ function resize() {
   H = window.innerHeight;
   canvas.width = W * dpr;
   canvas.height = H * dpr;
+  canvas.style.width = `${W}px`;     
+  canvas.style.height = `${H}px`;
 
   layout.fontSize = W * 0.31;
   const ink = measureInk(layout.fontSize);
@@ -325,7 +316,6 @@ function resize() {
   }
 
   buildWalls();
-  buildTextBodies();
 }
 
 // ---- main loop ----
@@ -346,12 +336,13 @@ function start() {
   // drag + fling — desktop only; touch conflicts with scroll on mobile
   if (!window.matchMedia('(max-width: 640px)').matches) {
     const mouse = Mouse.create(canvas);
+    mouse.pixelRatio = dpr; 
     const mc = MouseConstraint.create(engine, {
       mouse,
       constraint: { stiffness: 0.18, render: { visible: false } },
     });
     Composite.add(engine.world, mc);
-
+  
     let down: any = null;
     canvas.addEventListener('mousedown', (e) => {
       down = { x: e.offsetX, y: e.offsetY, t: e.timeStamp };

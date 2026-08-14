@@ -25,7 +25,7 @@ body::-webkit-scrollbar {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding: 1.25rem 1.5rem;
+  padding: 0 20px;
   pointer-events: none;
 }
 .archive-navbar h1 {
@@ -34,7 +34,11 @@ body::-webkit-scrollbar {
   font-weight: normal;
 }
 .archive-navbar a {
-  color: white;
+ 
+    margin-top: 32px;
+    font-size: 32px;
+    font-weight: normal;
+  color: #242bff;
   text-decoration: none;
   pointer-events: auto;
 }
