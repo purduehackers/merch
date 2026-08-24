@@ -12,6 +12,10 @@
     transform: translate(-50%, -50%) rotate(-10deg);
     z-index: 10; /* highest layer — sits above the canvas */
     pointer-events: none; /* let clicks/drags pass through to the shapes */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
   }
 .access {
     display:none;

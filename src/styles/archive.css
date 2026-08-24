@@ -61,6 +61,10 @@ body::-webkit-scrollbar {
   width: min(250px, 42vw);
   height: auto;
   display: block;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
 }
 
 #scene {
