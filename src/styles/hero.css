@@ -116,7 +116,7 @@
 }
 
 .notify-form {
-  top: calc(1710 * var(--s));
+  top: calc(1610 * var(--s));
   left: 50%;
   width: calc(280 * var(--s));
   min-height: calc(55 * var(--s));

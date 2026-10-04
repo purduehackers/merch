@@ -24,7 +24,7 @@ const SPECS = [
 let activeCanvas: HTMLCanvasElement | null = null;
 
 function initScene() {
-  const canvas = document.getElementById('scene') as HTMLCanvasElement | null;
+  const canvas = document.getElementById('scene') as HTMLCanvasElement;
   if (!canvas || canvas === activeCanvas) return;
   activeCanvas = canvas;
   const ctx = canvas.getContext('2d')!;
@@ -476,6 +476,7 @@ function start() {
     Composite.clear(engine.world, false);
     activeCanvas = null;
   }, { once: true });
+}
 
   // Start immediately so the physics layer never waits on font loading.
   // Re-measure once the local font is ready so the canvas text keeps its intended width.
