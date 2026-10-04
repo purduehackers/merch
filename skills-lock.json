@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "budge": {
+      "source": "ben-million/skills",
+      "sourceType": "github",
+      "skillPath": "skills/budge/SKILL.md",
+      "computedHash": "4c4dc1103af342a19db96eeb620fc12d932ff4ea73969bf147aa6b88704e708e"
+    }
+  }
+}

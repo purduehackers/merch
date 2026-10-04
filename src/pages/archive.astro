@@ -1,7 +1,7 @@
 ---
 import Layout from "../components/layout.astro";
-import { Picture } from "astro:assets";
-
+import hoodieFront from "../assets/hoodie-front.png";
+import hoodieBack from "../assets/hoodie-back.png";
 import hoodie1 from "../assets/hoodie1.jpg";
 import hoodie2 from "../assets/hoodie2.jpg";
 import hoodie3 from "../assets/hoodie3.jpg";
@@ -10,48 +10,74 @@ import hoodie5 from "../assets/hoodie5.jpg";
 import hoodie6 from "../assets/hoodie6.jpg";
 import hoodie7 from "../assets/hoodie7.jpg";
 import hoodie8 from "../assets/hoodie8.jpg";
-
 import "../styles/archive.css";
 
 const hoodies = [
-  { src: hoodie1, class: "one", loading: "eager" as const },
-  { src: hoodie2, class: "two", loading: "eager" as const },
-  { src: hoodie3, class: "three", loading: "lazy" as const },
-  { src: hoodie4, class: "four", loading: "lazy" as const },
-  { src: hoodie5, class: "five", loading: "lazy" as const },
-  { src: hoodie6, class: "six", loading: "lazy" as const },
-  { src: hoodie7, class: "seven", loading: "lazy" as const },
-  { src: hoodie8, class: "eight", loading: "lazy" as const },
+  { src: hoodie1.src, alt: "Creatura hoodie photo 1", position: "50% 50%" },
+  { src: hoodie2.src, alt: "Creatura hoodie photo 2", position: "50% 45%" },
+  { src: hoodie3.src, alt: "Creatura hoodie photo 3", position: "50% 44%" },
+  { src: hoodie4.src, alt: "Creatura hoodie photo 4", position: "50% 45%" },
+  { src: hoodie5.src, alt: "Creatura hoodie photo 5", position: "55% 45%" },
+  { src: hoodie6.src, alt: "Creatura hoodie photo 6", position: "55% 50%" },
+  { src: hoodie7.src, alt: "Creatura hoodie photo 7", position: "50% 65%" },
+  { src: hoodie8.src, alt: "Creatura hoodie photo 8", position: "54% 44%" },
 ];
 ---
 
 <Layout>
-  <canvas id="scene"></canvas>
-  <section class="archive-navbar">
-    <a href="/"> back </a>
-  </section>
-  <section class="archive-content">
-    <div class="archive-container">
-      {
-        hoodies.map((hoodie) => (
-          <Picture
-            src={hoodie.src}
-            class={`image ${hoodie.class}`}
-            formats={["avif", "webp"]}
-            width={250}
-            densities={[1.5, 2]}
-            quality={70}
-            loading={hoodie.loading}
-            decoding="async"
-            alt=""
-            draggable="false"
-          />
-        ))
-      }
-    </div>
-  </section>
+  {hoodies.map((hoodie) => <link rel="preload" as="image" href={hoodie.src} fetchpriority="low" />)}
+
+  <main class="archive-page">
+    <a class="archive-back" href="/">back</a>
+
+    <button class="hoodie-card" type="button" data-open-hoodie aria-haspopup="dialog" aria-controls="hoodie-overlay" aria-label="View the Creatura hoodie">
+      <img class="hoodie-card__image hoodie-card__image--front" src={hoodieFront.src} alt="" />
+      <img class="hoodie-card__image hoodie-card__image--back" src={hoodieBack.src} alt="" />
+    </button>
+
+    <dialog class="hoodie-overlay" id="hoodie-overlay" aria-labelledby="hoodie-title" aria-describedby="hoodie-description">
+      <div class="hoodie-overlay__decor" aria-hidden="true">
+        <img class="hoodie-overlay__shape hoodie-overlay__shape--red" src="/assets/figma/archive-red.svg" alt="" />
+        <img class="hoodie-overlay__shape hoodie-overlay__shape--green" src="/assets/figma/archive-union.svg" alt="" />
+        <img class="hoodie-overlay__shape hoodie-overlay__shape--orange" src="/assets/figma/archive-star.svg" alt="" />
+        <img class="hoodie-overlay__shape hoodie-overlay__shape--blue" src="/assets/figma/archive-ellipse.svg" alt="" />
+      </div>
+      <div class="hoodie-overlay__surface" aria-hidden="true"></div>
+
+      <p class="hoodie-overlay__description" id="hoodie-description">
+        a heavyweight stonewashed hoodie made to keep you warm during late nights.<br /><br />
+        features ascii purdue hackers logo and purdue hackers creaturas, our community submitted mascots.
+      </p>
+      <div class="hoodie-overlay__bottom-copy">
+        <p class="hoodie-overlay__season">spring 2026</p>
+        <h1 class="hoodie-overlay__title" id="hoodie-title"><span>CREATURA</span><span>HOODIE</span></h1>
+      </div>
+
+      <section class="hoodie-carousel" aria-label="Hoodie photos">
+        <div class="hoodie-carousel__main">
+          <img data-carousel-current src={hoodies[0].src} alt={hoodies[0].alt} style={`object-position: ${hoodies[0].position}`} />
+          <div class="hoodie-carousel__dots" aria-label="Choose a hoodie photo">
+            {hoodies.map((hoodie, index) => (
+              <button
+                class="hoodie-carousel__dot"
+                data-carousel-thumb
+                data-image-src={hoodie.src}
+                data-image-alt={hoodie.alt}
+                data-image-position={hoodie.position}
+                type="button"
+                aria-label={`Show hoodie photo ${index + 1}`}
+                aria-pressed={index === 0 ? "true" : "false"}
+              ></button>
+            ))}
+          </div>
+          <button class="hoodie-carousel__prev" type="button" data-carousel-prev aria-label="Show previous hoodie photo"></button>
+          <button class="hoodie-carousel__next" type="button" data-carousel-next aria-label="Show next hoodie photo"></button>
+        </div>
+      </section>
+    </dialog>
+  </main>
+
   <script>
-    import "../scripts/archive.ts";
-    import "../scripts/scroll.ts";
+    import "../scripts/hoodie-overlay.ts";
   </script>
 </Layout>

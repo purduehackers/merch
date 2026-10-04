@@ -1,3 +1,7 @@
+---
+import { ViewTransitions } from "astro:transitions";
+import "../styles/transitions.css";
+---
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -11,9 +15,14 @@
   <meta property="og:image:height" content="630" />
 
     <title>merch</title>
+    <ViewTransitions />
     <link rel="icon" href="/bro/icon.svg" type="image/svg+xml">
+    <link rel="prefetch" href="/archive">
   </head>
   <body>
-    <slot />
+    <div class="page-shell">
+      <slot />
+    </div>
+
   </body>
 </html>

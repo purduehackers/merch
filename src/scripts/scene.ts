@@ -4,7 +4,7 @@ import decomp from 'poly-decomp';
 Matter.Common.setDecomp(decomp);
 const { Engine, Composite, Bodies, Body, Mouse, MouseConstraint, Query } = Matter;
 
-// the fixed cast — exactly one of each, in order
+// A small mixed cast of playful product shapes.
 const SPECS = [
   { type: 'circle',   color: '#ff2e2e' },
   { type: 'triangle', color: '#ff6a00' },
@@ -12,14 +12,25 @@ const SPECS = [
   { type: 'spiral',   color: '#19d219' },
   { type: 'star',     color: '#c026d3', points: 8 },
   { type: 'rainbow',  color: '#5b4fe6' },
-  { type: 'tile',     color: '#ffe600' },
+  { type: 'tile',     color: '#ffe600', link: 'https://purduehackers.com' },
+  { type: 'diamond',  color: '#ff2ebd' },
+  { type: 'flower',   color: '#00e5ff' },
+  { type: 'cross',    color: '#b8ff00' },
+  { type: 'capsule',  color: '#ff4d6d' },
+  { type: 'leaf',     color: '#00ff99' },
+  { type: 'gem',      color: '#9b5cff' },
 ];
 
-const canvas = document.getElementById('scene') as HTMLCanvasElement;
-const ctx = canvas.getContext('2d')!;
+let activeCanvas: HTMLCanvasElement | null = null;
 
+function initScene() {
+  const canvas = document.getElementById('scene') as HTMLCanvasElement | null;
+  if (!canvas || canvas === activeCanvas) return;
+  activeCanvas = canvas;
+  const ctx = canvas.getContext('2d')!;
+const showText = canvas.dataset.showText !== 'false';
 const engine = Engine.create();
-engine.gravity.y = 1;
+engine.gravity.y = showText ? 2.2 : 0;
 // more solver iterations + tighter slop => far less clipping between big shapes
 engine.positionIterations = 14;
 engine.velocityIterations = 12;
@@ -59,6 +70,44 @@ function starVerts(r: number, points: number) {
     v.push({ x: rad * Math.cos(a), y: rad * Math.sin(a) });
   }
   return v;
+}
+function crossVerts(s: number) {
+  const t = s * 0.36;
+  return [
+    { x: -t, y: -s }, { x: t, y: -s }, { x: t, y: -t },
+    { x: s, y: -t }, { x: s, y: t }, { x: t, y: t },
+    { x: t, y: s }, { x: -t, y: s }, { x: -t, y: t },
+    { x: -s, y: t }, { x: -s, y: -t }, { x: -t, y: -t },
+  ];
+}
+function capsuleVerts(s: number) {
+  return [
+    { x: -s * 0.55, y: -s }, { x: s * 0.55, y: -s },
+    { x: s, y: -s * 0.55 }, { x: s, y: s * 0.55 },
+    { x: s * 0.55, y: s }, { x: -s * 0.55, y: s },
+    { x: -s, y: s * 0.55 }, { x: -s, y: -s * 0.55 },
+  ];
+}
+function leafVerts(s: number) {
+  return [
+    { x: 0, y: -s }, { x: s * 0.7, y: -s * 0.3 },
+    { x: s * 0.75, y: s * 0.35 }, { x: 0, y: s },
+    { x: -s * 0.75, y: s * 0.35 }, { x: -s * 0.7, y: -s * 0.3 },
+  ];
+}
+function gemVerts(s: number) {
+  return [
+    { x: -s * 0.55, y: -s }, { x: s * 0.55, y: -s },
+    { x: s, y: -s * 0.2 }, { x: s * 0.55, y: s },
+    { x: -s * 0.55, y: s }, { x: -s, y: -s * 0.2 },
+  ];
+}
+function flowerVerts(s: number, petals = 8) {
+  return Array.from({ length: 64 }, (_, i) => {
+    const angle = -Math.PI / 2 + (i * Math.PI * 2) / 64;
+    const radius = s * (0.88 + Math.cos(petals * angle) * 0.16);
+    return { x: radius * Math.cos(angle), y: radius * Math.sin(angle) };
+  });
 }
 // the "rainbow": a thick elliptical arc (open horseshoe), built as a
 // compound body of segments so it collides as the real curved band
@@ -125,6 +174,12 @@ function buildShape(spec: any, x: number, y: number) {
   } else {
     if (spec.type === 'square') localVerts = squareVerts(size * 0.95);
     else if (spec.type === 'triangle') localVerts = polyVerts(size * 1.15, 3);
+    else if (spec.type === 'diamond') localVerts = polyVerts(size * 1.15, 4);
+    else if (spec.type === 'flower') localVerts = flowerVerts(size * 1.05);
+    else if (spec.type === 'cross') localVerts = crossVerts(size * 0.9);
+    else if (spec.type === 'capsule') localVerts = capsuleVerts(size * 0.9);
+    else if (spec.type === 'leaf') localVerts = leafVerts(size * 1.1);
+    else if (spec.type === 'gem') localVerts = gemVerts(size * 1.1);
     else localVerts = starVerts(size * 1.2, spec.points!); // star
     localVerts = centerVerts(localVerts);
     body = Bodies.fromVertices(
@@ -135,18 +190,33 @@ function buildShape(spec: any, x: number, y: number) {
   }
 
   Body.setAngle(body, rand(0, Math.PI * 2));
-  Body.setAngularVelocity(body, rand(-0.12, 0.12));
+  if (showText) Body.setAngularVelocity(body, rand(-0.12, 0.12));
+  else Body.setStatic(body, true);
   body.plugin = { ...spec, localVerts, radius, ring, cells, cellSide };
   shapes.push(body);
   Composite.add(engine.world, body);
 }
 
-// stack them in a column above the screen with a guaranteed vertical gap, so they
-// rain down one at a time (and never spawn overlapping each other) and pile up
 function spawnAll() {
+  const size = Math.max(58, Math.min(120, Math.min(W, H) * 0.085));
+
+  if (!showText) {
+    const cols = 7;
+    const rows = Math.ceil(SPECS.length / cols);
+    const cellW = W / cols;
+    SPECS.forEach((spec, i) => {
+      const row = Math.floor(i / cols);
+      const itemsInRow = Math.min(cols, SPECS.length - row * cols);
+      const rowOffset = (cols - itemsInRow) / 2;
+      const x = cellW * (i % cols + rowOffset + 0.5);
+      const y = H - size * 1.2 - (rows - row - 1) * size * 1.65;
+      buildShape(spec, x, y);
+    });
+    return;
+  }
+
   const dropX = W * 0.14;
-  const size = Math.max(58, Math.min(120, Math.min(W, H) * 0.085)); // same size buildShape uses
-  const gap = size * 3.2; // > the largest shape's extent, so adjacent spawns can't overlap
+  const gap = size * 2.6;
   SPECS.forEach((spec, i) => {
     buildShape(spec, dropX + rand(-20, 20), -gap * (i + 1));
   });
@@ -154,13 +224,14 @@ function spawnAll() {
 
 // ---- drawing ----
 function drawText() {
+  if (!showText) return;
   ctx.save();
   ctx.translate(0, H);
   ctx.scale(layout.scaleX, 1);
-  ctx.font = `${layout.fontSize}px "PolySans Relax", sans-serif`;
+  ctx.font = `${layout.fontSize}px "PolySans Inky", sans-serif`;
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#ffffff'; 
+  ctx.fillStyle = document.body.classList.contains('items-visible') ? '#0d0d0d' : '#fffdf7';
   ctx.fillText('MERCH', layout.xOrigin, 0);
   ctx.restore();
 }
@@ -239,8 +310,7 @@ function drawShape(b: any) {
 
 function render() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = '#0D0D0D';
-  ctx.fillRect(0, 0, W, H);
+  ctx.clearRect(0, 0, W, H);
   drawText();
   for (const b of shapes) drawShape(b);
 }
@@ -276,10 +346,10 @@ function measureInk(fs: number) {
   const off = document.createElement('canvas');
   const octx = off.getContext('2d')!;
   const setup = () => {
-    octx.font = `${fs}px "PolySans Relax", sans-serif`;
+    octx.font = `${fs}px "PolySans Inky", sans-serif`;
     octx.textAlign = 'left';
     octx.textBaseline = 'alphabetic';
-    octx.fillStyle = '#fff';
+    octx.fillStyle = '#fffdf7';
   };
   setup();
   const adv = octx.measureText('MERCH').width;
@@ -306,43 +376,49 @@ function measureInk(fs: number) {
 }
 
 function resize() {
+  if (disposed) return;
   dpr = Math.min(window.devicePixelRatio || 1, 2);
-  W = window.innerWidth;
-  H = window.innerHeight;
+  W = canvas.clientWidth || window.innerWidth;
+  H = canvas.clientHeight || window.innerHeight;
   canvas.width = W * dpr;
   canvas.height = H * dpr;
 
   layout.fontSize = W * 0.31;
   const ink = measureInk(layout.fontSize);
   if (ink.right > ink.left) {
-    layout.scaleX = W / (ink.right - ink.left + 1); // ink spans the full width
-    layout.xOrigin = ink.pad - ink.left;            // leftmost ink lands at x=0
+    const edgePadding = Math.min(4, W * 0.01);
+    layout.scaleX = (W - edgePadding * 2) / (ink.right - ink.left + 1);
+    layout.xOrigin = ink.pad - ink.left + edgePadding / layout.scaleX;
     layout.capHeight = ink.baseline - ink.top;
   } else {
-    ctx.font = `${layout.fontSize}px "PolySans Relax", sans-serif`;
+    ctx.font = `${layout.fontSize}px "PolySans Inky", sans-serif`;
     layout.scaleX = W / ctx.measureText('MERCH').width;
     layout.xOrigin = 0;
     layout.capHeight = layout.fontSize * 0.7;
   }
 
   buildWalls();
-  buildTextBodies();
+  if (showText) buildTextBodies();
 }
 
 // ---- main loop ----
 let last = 0;
+let rafId = 0;
+let disposed = false;
 function frame(now: number) {
+  if (disposed) return;
   // clamp timestep so a slow frame can't let fast shapes tunnel through each other
   const dt = last ? Math.min(now - last, 18) : 16;
   last = now;
   Engine.update(engine, dt);
   render();
-  requestAnimationFrame(frame);
+  rafId = requestAnimationFrame(frame);
 }
 
 function start() {
+  const controller = new AbortController();
   resize();
-  window.addEventListener('resize', resize);
+  window.addEventListener('resize', resize, { signal: controller.signal });
 
   // drag + fling — desktop only; touch conflicts with scroll on mobile
   if (!window.matchMedia('(max-width: 640px)').matches) {
@@ -353,36 +429,67 @@ function start() {
     });
     Composite.add(engine.world, mc);
 
-    let down: any = null;
-    canvas.addEventListener('mousedown', (e) => {
-      down = { x: e.offsetX, y: e.offsetY, t: e.timeStamp };
-    });
-    canvas.addEventListener('mouseup', (e) => {
-      if (!down) return;
-      const moved = Math.hypot(e.offsetX - down.x, e.offsetY - down.y);
-      const quick = e.timeStamp - down.t < 250;
-      down = null;
-      if (moved > 8 || !quick) return;
-      const hit = Query.point(shapes, { x: e.offsetX, y: e.offsetY })[0];
-      if (!hit) return;
-      Body.setVelocity(hit, { x: rand(-16, 16), y: rand(-24, -14) });
-      Body.setAngularVelocity(hit, rand(-0.4, 0.4));
-    });
   }
 
-  spawnAll();
+  let down: { x: number; y: number; t: number } | null = null;
+  const linkedShapeAt = (event: PointerEvent) =>
+    Query.point(shapes, { x: event.offsetX, y: event.offsetY })
+      .find((body: any) => body.plugin?.link);
 
-  requestAnimationFrame(frame);
+  canvas.addEventListener('pointermove', (event) => {
+    canvas.style.cursor = linkedShapeAt(event) ? 'pointer' : 'default';
+  }, { signal: controller.signal });
+  canvas.addEventListener('pointerleave', () => {
+    canvas.style.cursor = 'default';
+  }, { signal: controller.signal });
+  canvas.addEventListener('pointerdown', (event) => {
+    down = { x: event.offsetX, y: event.offsetY, t: event.timeStamp };
+  }, { signal: controller.signal });
+  canvas.addEventListener('pointerup', (event) => {
+    if (!down) return;
+    const moved = Math.hypot(event.offsetX - down.x, event.offsetY - down.y);
+    const quick = event.timeStamp - down.t < 250;
+    down = null;
+    if (moved > 8 || !quick) return;
+    const hit = linkedShapeAt(event) || Query.point(shapes, { x: event.offsetX, y: event.offsetY })[0];
+    if (!hit) return;
+    if (hit.plugin?.link) {
+      window.location.assign(hit.plugin.link);
+      return;
+    }
+    Body.setVelocity(hit, { x: rand(-16, 16), y: rand(-24, -14) });
+    Body.setAngularVelocity(hit, rand(-0.4, 0.4));
+  });
+
+  render();
+  try {
+    spawnAll();
+  } catch (err) {
+    console.error('Unable to create physics shapes', err);
+  }
+
+  rafId = requestAnimationFrame(frame);
+  document.addEventListener('astro:before-swap', () => {
+    disposed = true;
+    cancelAnimationFrame(rafId);
+    controller.abort();
+    Composite.clear(engine.world, false);
+    activeCanvas = null;
+  }, { once: true });
+
+  // Start immediately so the physics layer never waits on font loading.
+  // Re-measure once the local font is ready so the canvas text keeps its intended width.
+  start();
+  const fontset = (document as any).fonts;
+  if (fontset?.load) {
+    Promise.all([
+      fontset.load('700 100px "PolySans Inky"'),
+      fontset.load('normal 100px "PolySans Inky"'),
+    ])
+      .then(() => resize())
+      .catch(() => {});
+  }
 }
 
-// Canvas text does NOT trigger @font-face loading the way DOM text does, and
-// document.fonts.ready resolves immediately when nothing has requested the font —
-// so explicitly load PolySans and await it before the first render/measure.
-const fontset = (document as any).fonts;
-Promise.all([
-  fontset.load('700 100px "PolySans Relax"'),
-  fontset.load('normal 100px "PolySans Relax"'),
-])
-  .catch(() => {})        // fall back to system sans if it ever fails to load
-  .then(() => fontset.ready)
-  .then(start);
+document.addEventListener('astro:page-load', initScene);
+initScene();
