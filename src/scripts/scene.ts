@@ -442,7 +442,14 @@ function start() {
     if (typeof OrientationEvent.requestPermission === 'function') {
       OrientationEvent.requestPermission().then((state: string) => {
         if (state === 'granted') listen();
-      }).catch(() => {});
+        else {
+          tiltRequested = false;
+          console.warn('[scene] Motion permission was not granted:', state);
+        }
+      }).catch((error: unknown) => {
+        tiltRequested = false;
+        console.warn('[scene] Motion permission request failed:', error);
+      });
     } else {
       listen();
     }
@@ -476,9 +483,8 @@ function start() {
   canvas.addEventListener('pointerleave', () => {
     canvas.style.cursor = 'default';
   }, { signal: controller.signal });
-  window.addEventListener('pointerdown', enableTilt, {
+  window.addEventListener('click', enableTilt, {
     signal: controller.signal,
-    once: true,
     capture: true,
   });
   canvas.addEventListener('pointerdown', (event) => {
