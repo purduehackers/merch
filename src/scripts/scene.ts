@@ -29,6 +29,7 @@ function initScene() {
   activeCanvas = canvas;
   const ctx = canvas.getContext('2d')!;
 const showText = canvas.dataset.showText !== 'false';
+const isMobile = window.matchMedia('(max-width: 640px)').matches;
 const engine = Engine.create();
 const gravity = 2.2;
 engine.gravity.y = showText ? gravity : 0;
@@ -216,6 +217,24 @@ function spawnAll() {
     return;
   }
 
+  if (isMobile) {
+    const columns = 5;
+    const rows = Math.ceil(SPECS.length / columns);
+    const heapFloor = H - layout.capHeight - size * 1.25;
+    const gapX = W / (columns + 1);
+    const gapY = size * 1.25;
+    SPECS.forEach((spec, i) => {
+      const row = Math.floor(i / columns);
+      const col = i % columns;
+      buildShape(
+        spec,
+        gapX * (col + 1) + rand(-size * 0.2, size * 0.2),
+        heapFloor - row * gapY + rand(-size * 0.2, size * 0.2),
+      );
+    });
+    return;
+  }
+
   const dropX = W * 0.14;
   const gap = size * 2.6;
   SPECS.forEach((spec, i) => {
@@ -337,6 +356,9 @@ function buildWalls() {
     Bodies.rectangle(-t / 2, H / 2, t, H * 3, { isStatic: true }),          // left
     Bodies.rectangle(W + t / 2, H / 2, t, H * 3, { isStatic: true }),       // right
   ];
+  if (isMobile) {
+    walls.push(Bodies.rectangle(W / 2, -t / 2, W + t * 2, t, { isStatic: true })); // top
+  }
   Composite.add(engine.world, walls);
 }
 
