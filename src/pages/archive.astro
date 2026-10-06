@@ -1,15 +1,19 @@
 ---
 import Layout from "../components/layout.astro";
-import hoodieFront from "../assets/hoodie-front.png";
-import hoodieBack from "../assets/hoodie-back.png";
-import hoodie1 from "../assets/hoodie1.jpg";
-import hoodie2 from "../assets/hoodie2.jpg";
-import hoodie3 from "../assets/hoodie3.jpg";
-import hoodie4 from "../assets/hoodie4.jpg";
-import hoodie5 from "../assets/hoodie5.jpg";
-import hoodie6 from "../assets/hoodie6.jpg";
-import hoodie7 from "../assets/hoodie7.jpg";
-import hoodie8 from "../assets/hoodie8.jpg";
+import hoodieFront from "../assets/hoodie-front.webp";
+import hoodieBack from "../assets/hoodie-back.webp";
+import hoodie1 from "../assets/hoodie1.webp";
+import hoodie2 from "../assets/hoodie2.webp";
+import hoodie3 from "../assets/hoodie3.webp";
+import hoodie4 from "../assets/hoodie4.webp";
+import hoodie5 from "../assets/hoodie5.webp";
+import hoodie6 from "../assets/hoodie6.webp";
+import hoodie7 from "../assets/hoodie7.webp";
+import hoodie8 from "../assets/hoodie8.webp";
+import archiveRed from "../assets/archive-red.svg";
+import archiveUnion from "../assets/archive-union.svg";
+import archiveStar from "../assets/archive-star.svg";
+import archiveEllipse from "../assets/archive-ellipse.svg";
 import "../styles/archive.css";
 
 const hoodies = [
@@ -25,8 +29,6 @@ const hoodies = [
 ---
 
 <Layout>
-  {hoodies.map((hoodie) => <link rel="preload" as="image" href={hoodie.src} fetchpriority="low" />)}
-
   <main class="archive-page">
     <a class="archive-back" href="/">back</a>
 
@@ -37,10 +39,10 @@ const hoodies = [
 
     <dialog class="hoodie-overlay" id="hoodie-overlay" aria-labelledby="hoodie-title" aria-describedby="hoodie-description">
       <div class="hoodie-overlay__decor" aria-hidden="true">
-        <img class="hoodie-overlay__shape hoodie-overlay__shape--red" src="/assets/figma/archive-red.svg" alt="" />
-        <img class="hoodie-overlay__shape hoodie-overlay__shape--green" src="/assets/figma/archive-union.svg" alt="" />
-        <img class="hoodie-overlay__shape hoodie-overlay__shape--orange" src="/assets/figma/archive-star.svg" alt="" />
-        <img class="hoodie-overlay__shape hoodie-overlay__shape--blue" src="/assets/figma/archive-ellipse.svg" alt="" />
+        <img class="hoodie-overlay__shape hoodie-overlay__shape--red" src={archiveRed.src} alt="" />
+        <img class="hoodie-overlay__shape hoodie-overlay__shape--green" src={archiveUnion.src} alt="" />
+        <img class="hoodie-overlay__shape hoodie-overlay__shape--orange" src={archiveStar.src} alt="" />
+        <img class="hoodie-overlay__shape hoodie-overlay__shape--blue" src={archiveEllipse.src} alt="" />
       </div>
       <div class="hoodie-overlay__surface" aria-hidden="true"></div>
 

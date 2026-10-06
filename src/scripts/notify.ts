@@ -2,14 +2,45 @@ export {};
 
 const form = document.querySelector<HTMLFormElement>('.notify-form');
 const input = form?.querySelector<HTMLInputElement>('input[name="email"]');
-const status = form?.querySelector<HTMLElement>('[data-notify-status]');
+const submit = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+const prompt = form?.querySelector<HTMLElement>('.notify-form__prompt');
+const promptDefault = form?.querySelector<HTMLElement>('.notify-form__prompt-default');
+const processing = form?.querySelector<HTMLElement>('[data-notify-processing]');
+const error = form?.querySelector<HTMLElement>('[data-notify-error]');
 const success = form?.querySelector<HTMLElement>('[data-notify-success]');
 
-function setStatus(message: string) {
-  if (!status) return;
-  status.classList.remove('is-visible');
-  status.textContent = message;
-  if (message) requestAnimationFrame(() => status.classList.add('is-visible'));
+function resetPrompt() {
+  prompt?.classList.remove('is-success', 'is-processing', 'is-error');
+  promptDefault?.removeAttribute('aria-hidden');
+  processing?.setAttribute('aria-hidden', 'true');
+  error?.setAttribute('aria-hidden', 'true');
+  success?.setAttribute('aria-hidden', 'true');
+  success?.classList.remove('is-visible');
+}
+
+function showProcessing() {
+  resetPrompt();
+  prompt?.classList.add('is-processing');
+  promptDefault?.setAttribute('aria-hidden', 'true');
+  processing?.setAttribute('aria-hidden', 'false');
+}
+
+function showError(message: string) {
+  resetPrompt();
+  if (!prompt || !error) return;
+  error.textContent = message;
+  prompt.classList.add('is-error');
+  promptDefault?.setAttribute('aria-hidden', 'true');
+  error.setAttribute('aria-hidden', 'false');
+}
+
+function showSuccess() {
+  resetPrompt();
+  prompt?.classList.add('is-success');
+  promptDefault?.setAttribute('aria-hidden', 'true');
+  success?.setAttribute('aria-hidden', 'false');
+  success?.classList.remove('is-visible');
+  requestAnimationFrame(() => success?.classList.add('is-visible'));
 }
 
 input?.addEventListener('pointerdown', () => input.dataset.pointerFocus = 'true');
@@ -19,23 +50,23 @@ form?.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!input) return;
 
-  if (success) success.hidden = true;
-  setStatus('');
+  resetPrompt();
   if (!input.checkValidity()) {
     input.setAttribute('aria-invalid', 'true');
-    setStatus(input.validity.valueMissing ? 'Enter your email.' : 'Enter a valid email.');
+    showError(input.validity.valueMissing ? 'ENTER YOUR EMAIL.' : 'ENTER A VALID EMAIL.');
     return;
   }
   input.removeAttribute('aria-invalid');
 
   const endpoint = form.dataset.endpoint;
   if (!endpoint) {
-    setStatus('Email signup is not configured yet.');
+    showError('EMAIL SIGNUP IS NOT CONFIGURED.');
     return;
   }
 
   input.disabled = true;
-  setStatus('adding you to the list…');
+  if (submit) submit.disabled = true;
+  showProcessing();
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -43,21 +74,16 @@ form?.addEventListener('submit', async (event) => {
       body: JSON.stringify({ email: input.value.trim() }),
     });
     if (response.status === 409) {
-      setStatus("You're already on the list.");
+      showError("YOU'RE ALREADY ON THE LIST.");
       return;
     }
     if (!response.ok) throw new Error('signup failed');
     input.value = '';
-    if (success) {
-      success.hidden = false;
-      success.classList.remove('is-visible');
-      requestAnimationFrame(() => success.classList.add('is-visible'));
-    }
-    setStatus('');
+    showSuccess();
   } catch {
-    if (success) success.hidden = true;
-    setStatus('Unable to save your email. Please try again.');
+    showError('UNABLE TO SAVE YOUR EMAIL. TRY AGAIN.');
   } finally {
     input.disabled = false;
+    if (submit) submit.disabled = false;
   }
 });

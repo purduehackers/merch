@@ -30,7 +30,8 @@ function initScene() {
   const ctx = canvas.getContext('2d')!;
 const showText = canvas.dataset.showText !== 'false';
 const engine = Engine.create();
-engine.gravity.y = showText ? 2.2 : 0;
+const gravity = 2.2;
+engine.gravity.y = showText ? gravity : 0;
 // more solver iterations + tighter slop => far less clipping between big shapes
 engine.positionIterations = 14;
 engine.velocityIterations = 12;
@@ -43,6 +44,7 @@ let layout = { fontSize: 0, scaleX: 1, capHeight: 0, xOrigin: 0 };
 let W = 0, H = 0, dpr = 1;
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
+const shapeSize = () => Math.max(44, Math.min(112, Math.min(W, H) * 0.075));
 
 // ---- shape geometry (local verts centered on ~centroid) ----
 function centerVerts(v: { x: number; y: number }[]) {
@@ -131,8 +133,7 @@ function makeArc(x: number, y: number, rx: number, ry: number, thick: number, a0
 
 // ---- build the fixed cast ----
 function buildShape(spec: any, x: number, y: number) {
-  const base = Math.min(W, H) * 0.085;
-  const size = Math.max(58, Math.min(120, base));
+  const size = shapeSize();
   const opts = { restitution: 0.2, friction: 0.5, frictionStatic: 0.7, slop: 0.02 };
 
   let body: any;
@@ -198,7 +199,7 @@ function buildShape(spec: any, x: number, y: number) {
 }
 
 function spawnAll() {
-  const size = Math.max(58, Math.min(120, Math.min(W, H) * 0.085));
+  const size = shapeSize();
 
   if (!showText) {
     const cols = 7;
@@ -417,6 +418,39 @@ function frame(now: number) {
 
 function start() {
   const controller = new AbortController();
+  let tiltRequested = false;
+
+  const handleOrientation = (event: DeviceOrientationEvent) => {
+    if (event.beta == null || event.gamma == null) return;
+    const beta = Math.max(-90, Math.min(90, event.beta)) * Math.PI / 180;
+    const gamma = Math.max(-90, Math.min(90, event.gamma)) * Math.PI / 180;
+    engine.gravity.x = Math.sin(gamma) * gravity;
+    engine.gravity.y = Math.sin(beta) * gravity;
+  };
+
+  const enableTilt = () => {
+    if (tiltRequested || !showText || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    tiltRequested = true;
+    const OrientationEvent = (window as any).DeviceOrientationEvent;
+    if (!OrientationEvent) return;
+
+    const listen = () => window.addEventListener('deviceorientation', handleOrientation, {
+      passive: true,
+      signal: controller.signal,
+    });
+
+    if (typeof OrientationEvent.requestPermission === 'function') {
+      OrientationEvent.requestPermission().then((state: string) => {
+        if (state === 'granted') listen();
+      }).catch(() => {});
+    } else {
+      listen();
+    }
+  };
+
+  const OrientationEvent = (window as any).DeviceOrientationEvent;
+  if (OrientationEvent && typeof OrientationEvent.requestPermission !== 'function') enableTilt();
+
   resize();
   window.addEventListener('resize', resize, { signal: controller.signal });
 
@@ -442,7 +476,13 @@ function start() {
   canvas.addEventListener('pointerleave', () => {
     canvas.style.cursor = 'default';
   }, { signal: controller.signal });
+  window.addEventListener('pointerdown', enableTilt, {
+    signal: controller.signal,
+    once: true,
+    capture: true,
+  });
   canvas.addEventListener('pointerdown', (event) => {
+    enableTilt();
     down = { x: event.offsetX, y: event.offsetY, t: event.timeStamp };
   }, { signal: controller.signal });
   canvas.addEventListener('pointerup', (event) => {
