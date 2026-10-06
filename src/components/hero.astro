@@ -1,16 +1,10 @@
 ---
 import "../styles/hero.css";
 import concept from "../assets/merch-concept.webp";
-import ellipsePurple from "../assets/ellipse-purple.svg";
-import starPurple from "../assets/star-purple.svg";
+import merchHat from "../assets/merch-hat.png";
+import merchShirt from "../assets/merch-shirt.png";
 
 const notifyEndpoint = import.meta.env.PUBLIC_NOTIFY_ENDPOINT || "/api/notify";
-
-// Add a file path here when a product is ready; the placeholder disappears automatically.
-const PRODUCT_DESIGNS: Record<string, string | null> = {
-    shirt: null,
-    cap: null,
-};
 ---
 
 <main class="home" aria-labelledby="page-title">
@@ -25,23 +19,41 @@ const PRODUCT_DESIGNS: Record<string, string | null> = {
             archive
         </a>
 
-        <div class="home__concept" aria-hidden="true">
-            <img
-                src={concept.src}
-                alt=""
-                width="323"
-                height="1144"
-                loading="eager"
-                decoding="async"
-            />
+        <div class="home__scene-clip" aria-hidden="true">
+            <div class="home__concept">
+                <img
+                    src={concept.src}
+                    alt=""
+                    width="323"
+                    height="1144"
+                    loading="eager"
+                    decoding="async"
+                />
+            </div>
         </div>
 
         <form class="notify-form" data-endpoint={notifyEndpoint} novalidate>
             <label class="notify-form__prompt" for="notify-email">
-                <span class="notify-form__prompt-default">NOTIFY ME WHEN F2026 DROPS</span>
-                <span class="notify-form__prompt-processing" data-notify-processing aria-hidden="true">ADDING YOU TO THE LIST…</span>
-                <span class="notify-form__prompt-error" data-notify-error aria-hidden="true"></span>
-                <span class="notify-form__success" data-notify-success aria-hidden="true">
+                <span class="notify-form__prompt-default">
+                    NOTIFY ME WHEN W2026 DROPS
+                </span>
+                <span
+                    class="notify-form__prompt-processing"
+                    data-notify-processing
+                    aria-hidden="true"
+                >
+                    ADDING YOU TO THE LIST…
+                </span>
+                <span
+                    class="notify-form__prompt-error"
+                    data-notify-error
+                    aria-hidden="true"
+                ></span>
+                <span
+                    class="notify-form__success"
+                    data-notify-success
+                    aria-hidden="true"
+                >
                     <span style="--i: 0">YOU'RE</span>
                     <span style="--i: 1">ON</span>
                     <span style="--i: 2">THE</span>
@@ -58,29 +70,52 @@ const PRODUCT_DESIGNS: Record<string, string | null> = {
                     required
                 />
             </div>
-            <button class="notify-form__submit" type="submit">enter</button>
-            <p class="notify-form__status" data-notify-status aria-live="polite" aria-atomic="true"></p>
+            <button class="notify-form__submit" type="submit">
+                enter
+            </button>
+            <p
+                class="notify-form__status"
+                data-notify-status
+                aria-live="polite"
+                aria-atomic="true"
+            ></p>
         </form>
 
         <div class="items-background" aria-hidden="true"></div>
         <div class="lower-art">
             <div class="cutout-group">
                 <div class="orbit-item orbit-item--shirt">
-                    <img class="shape shape--red-large" src={ellipsePurple.src} alt="" aria-hidden="true" width="348.778" height="348.778" loading="eager" decoding="async" />
-                    <button class:list={["product", "product--shirt", PRODUCT_DESIGNS.shirt && "product--ready"]} type="button" aria-label="Shirt">
-                        <div class="product__art"></div>
-                        {PRODUCT_DESIGNS.shirt && <img class="product__design" src={PRODUCT_DESIGNS.shirt} alt="" />}
-                        {!PRODUCT_DESIGNS.shirt && <span class="product-question">?</span>}
+                    <button
+                        class="product product--shirt product--image"
+                        type="button"
+                        aria-label="Shirt"
+                    >
+                        <img
+                            class="product-image"
+                            src={merchShirt.src}
+                            alt=""
+                            width="356"
+                            height="396"
+                            loading="eager"
+                            decoding="async"
+                        />
                     </button>
                 </div>
                 <div class="orbit-item orbit-item--cap">
-                    <div class="shape shape--purple" aria-hidden="true">
-                        <div><img src={starPurple.src} alt="" width="388.46" height="372.572" loading="eager" decoding="async" /></div>
-                    </div>
-                    <button class:list={["product", "product--cap", PRODUCT_DESIGNS.cap && "product--ready"]} type="button" aria-label="Cap">
-                        <div class="product__art"></div>
-                        {PRODUCT_DESIGNS.cap && <img class="product__design" src={PRODUCT_DESIGNS.cap} alt="" />}
-                        {!PRODUCT_DESIGNS.cap && <span class="product-question">?</span>}
+                    <button
+                        class="product product--cap product--image"
+                        type="button"
+                        aria-label="Hat"
+                    >
+                        <img
+                            class="product-image"
+                            src={merchHat.src}
+                            alt=""
+                            width="528"
+                            height="506"
+                            loading="eager"
+                            decoding="async"
+                        />
                     </button>
                 </div>
             </div>
@@ -91,5 +126,4 @@ const PRODUCT_DESIGNS: Record<string, string | null> = {
 <script>
     import "../scripts/scene.ts";
     import "../scripts/notify.ts";
-
 </script>

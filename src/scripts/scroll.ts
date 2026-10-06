@@ -14,7 +14,6 @@ function initScroll() {
 
   function update() {
     const itemsVisible = Boolean(itemsBackground && itemsBackground.getBoundingClientRect().top <= window.innerHeight * 0.75);
-    home.classList.toggle('home--items-visible', itemsVisible);
     document.body.classList.toggle('items-visible', itemsVisible);
   }
 

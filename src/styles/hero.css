@@ -1,7 +1,7 @@
 .home {
   --s: 0.0661375661vw;
   width: 100%;
-  min-height: max(min(188.426vw, 2849px), 100svh);
+  min-height: max(min(128vw, 1935px), 100svh);
   overflow: hidden;
   background: transparent;
 }
@@ -15,7 +15,7 @@
 .home__stage {
   position: relative;
   width: min(100vw, 1512px);
-  height: max(min(188.426vw, 2849px), 100svh);
+  height: max(min(128vw, 1935px), 100svh);
   overflow: hidden;
   margin-inline: auto;
   background: transparent;
@@ -74,23 +74,32 @@
   z-index: 5;
 }
 
+.home__scene-clip {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 100svh;
+  clip-path: inset(0 -100vw 0 -100vw);
+  pointer-events: none;
+  z-index: 3;
+}
+
 .home__concept {
   position: absolute;
-  top: calc(-144.91 * var(--s));
-  left: calc(873.54 * var(--s));
+  top: -144.91px;
+  right: -22.3px;
   display: flex;
-  width: calc(660.744 * var(--s));
-  height: calc(1187.819 * var(--s));
+  width: 660.744px;
+  height: 1187.819px;
   align-items: center;
   justify-content: center;
-  z-index: 3;
   pointer-events: none;
 }
 
 .home__concept img {
   display: block;
-  width: calc(570 * var(--s));
-  height: calc(1028 * var(--s));
+  width: 570px;
+  height: 1028px;
   max-width: none;
   object-fit: contain;
   transform: rotate(-8deg);
@@ -117,9 +126,9 @@
 }
 
 .notify-form {
-  top: calc(1610 * var(--s));
+  top: calc(1380 * var(--s));
   left: 50%;
-  width: calc(280 * var(--s));
+  width: min(calc(280 * var(--s)), calc(100% - 32px));
   min-height: calc(55 * var(--s));
   margin: 0;
   background: transparent;
@@ -174,6 +183,8 @@
   font-size: max(16px, calc(20 * var(--s)));
   font-weight: 600;
   line-height: 1;
+  font-size: inherit;
+  gap: 0.25em;
 }
 
 .notify-form__prompt-processing,
@@ -244,15 +255,16 @@
   z-index: 0;
 }
 
-.home--items-visible .items-background {
-  background: transparent;
-}
-
 .lower-art {
   position: absolute;
   inset: 0;
   z-index: 2;
   pointer-events: none;
+  translate: calc(-20 * var(--s)) calc(18 * var(--s));
+}
+
+.notify-form {
+  translate: calc(-20 * var(--s)) calc(18 * var(--s));
 }
 
 .cutout-group {
@@ -524,19 +536,6 @@
   -webkit-mask-position: calc(-34.413 * var(--s)) calc(18.805 * var(--s));
 }
 
-.product--shirt .product__art {
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  mask-image: url("../assets/mask-shirt.webp");
-  mask-size: calc(320.959 * var(--s)) calc(428.244 * var(--s));
-  mask-position: calc(51.719 * var(--s)) 0;
-  -webkit-mask-image: url("../assets/mask-shirt.webp");
-  -webkit-mask-size: calc(320.959 * var(--s)) calc(428.244 * var(--s));
-  -webkit-mask-position: calc(51.719 * var(--s)) 0;
-}
-
 .product--keychain .product__art {
   top: 0;
   left: 0;
@@ -561,19 +560,6 @@
   -webkit-mask-image: url("../assets/mask-bag.webp");
   -webkit-mask-size: calc(432.697 * var(--s)) calc(432.697 * var(--s));
   -webkit-mask-position: calc(-80.519 * var(--s)) calc(6.289 * var(--s));
-}
-
-.product--cap .product__art {
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  mask-image: url("../assets/mask-cap.webp");
-  mask-size: calc(295.943 * var(--s)) calc(196.056 * var(--s));
-  mask-position: 0 calc(27.148 * var(--s));
-  -webkit-mask-image: url("../assets/mask-cap.webp");
-  -webkit-mask-size: calc(295.943 * var(--s)) calc(196.056 * var(--s));
-  -webkit-mask-position: 0 calc(27.148 * var(--s));
 }
 
 .shape--keychain-ring {
@@ -669,32 +655,61 @@
 }
 
 .orbit-item--shirt {
-  top: calc(1350 * var(--s));
-  left: calc(1050 * var(--s));
+  top: calc(1150 * var(--s));
+  left: calc(1000 * var(--s));
+  transform: scale(1.21);
 }
 
 .orbit-item--cap {
-  top: calc(1350 * var(--s));
-  left: calc(170 * var(--s));
+  top: calc(1160 * var(--s));
+  left: calc(0 * var(--s));
+  transform: scale(1.13);
 }
 
-.product--shirt .product-question {
-  top: calc(174.07 * var(--s));
-  left: calc(182.01 * var(--s));
+.product--image {
+  width: calc(100%);
+  height: 100%;
+  overflow: visible;
 }
 
-.product--cap .product-question {
-  top: calc(75.4 * var(--s));
-  left: calc(146.59 * var(--s));
+.product--shirt {
+  width: calc(420 * var(--s));
+  height: calc(467 * var(--s));
+}
+
+.product--cap {
+  width: calc(500 * var(--s));
+  height: calc(479 * var(--s));
+}
+
+.product-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* The hat PNG has more transparent margin than the shirt PNG; scale its visible star optically. */
+.product--cap .product-image {
+  transform: scale(1.25);
+}
+
+@media (max-width: 720px) {
+  .home__scene-clip {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {
-  .home__stage {
-    height: calc(200svh + 160px);
+  .home {
+    --mobile-merch-gap: 15svh;
+    --mobile-merch-section: max(100svh, 760px);
+    --mobile-merch-center: max(0px, calc(50svh - 380px));
   }
 
-  .home__concept {
-    display: none;
+  .home__stage {
+    height: calc(100svh + var(--mobile-merch-gap) + var(--mobile-merch-section));
   }
 
   .items-background {
@@ -702,26 +717,43 @@
   }
 
   .lower-art {
-    top: 100svh;
+    top: calc(100svh + var(--mobile-merch-gap) + var(--mobile-merch-center));
     bottom: auto;
-    height: 100svh;
+    height: 760px;
     overflow: hidden;
+    translate: none;
+  }
+
+  .notify-form {
+    translate: none;
   }
 
   .orbit-item {
-    transform: scale(1.8);
-  }
-
-  .orbit-item--shirt {
-    top: calc(100svh - 360px);
-    right: auto;
-    left: 215px;
+    width: 100%;
+    left: 0;
+    transform: none;
   }
 
   .orbit-item--cap {
-    top: calc(100svh - 360px);
-    right: auto;
-    left: -35px;
+    top: 0;
+  }
+
+  .orbit-item--shirt {
+    top: 480px;
+  }
+
+  .orbit-item--cap > .product,
+  .orbit-item--shirt > .product {
+    left: 50%;
+    transform-origin: top center;
+  }
+
+  .orbit-item--cap > .product {
+    transform: translateX(-50%) scale(2.15);
+  }
+
+  .orbit-item--shirt > .product {
+    transform: translateX(-50%) scale(2.05);
   }
 
   .home__descriptor {
@@ -740,7 +772,7 @@
   }
 
   .notify-form {
-    top: calc(200svh - 160px);
+    top: calc(100svh + var(--mobile-merch-gap) + var(--mobile-merch-center) + 320px);
     right: 16px;
     bottom: auto;
     left: 16px;
@@ -749,10 +781,15 @@
     transform: none;
   }
 
+  .orbit-item--shirt > .product {
+    transform: translateX(-50%) scale(2.15);
+  }
+
   .notify-form__prompt {
     height: auto;
     margin-bottom: 8px;
-    font-size: clamp(17px, 4.5vw, 22px);
+    font-size: clamp(20px, 5.5vw, 26px);
+    line-height: 1.05;
     white-space: normal;
   }
 
@@ -763,6 +800,7 @@
   .notify-form__submit {
     height: 44px;
     min-height: 44px;
+    font-size: 20px;
   }
 
   .notify-form input {

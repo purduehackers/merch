@@ -1,12 +1,12 @@
 const dialog = document.querySelector<HTMLDialogElement>('#hoodie-overlay');
 const trigger = document.querySelector<HTMLButtonElement>('[data-open-hoodie]');
 const currentImage = dialog?.querySelector<HTMLImageElement>('[data-carousel-current]');
-const thumbnails = dialog ? Array.from(dialog.querySelectorAll<HTMLButtonElement>('[data-carousel-thumb]')) : [];
+const thumbnails = dialog ? Array.from(dialog.querySelectorAll<HTMLElement>('[data-carousel-thumb]')) : [];
+const carouselMain = dialog?.querySelector<HTMLElement>('.hoodie-carousel__main');
 const previousButton = dialog?.querySelector<HTMLButtonElement>('[data-carousel-prev]');
 const nextButton = dialog?.querySelector<HTMLButtonElement>('[data-carousel-next]');
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const transitionDuration = prefersReducedMotion ? 0 : 120;
-let imageTimer: number | undefined;
 let closeTimer: number | undefined;
 let currentIndex = 0;
 
@@ -48,21 +48,47 @@ function showSlide(index: number) {
   if (!source || currentImage.src.endsWith(source)) return;
 
   currentIndex = (index + thumbnails.length) % thumbnails.length;
-  if (imageTimer) window.clearTimeout(imageTimer);
-  currentImage.classList.add('is-changing');
   currentImage.src = source;
   currentImage.alt = thumbnail.dataset.imageAlt ?? '';
-  currentImage.style.objectPosition = thumbnail.dataset.imagePosition ?? '50% 50%';
-  imageTimer = window.setTimeout(() => {
-    currentImage.classList.remove('is-changing');
-    imageTimer = undefined;
-  }, transitionDuration);
-  thumbnails.forEach((item) => item.setAttribute('aria-pressed', String(item === thumbnail)));
+  thumbnails.forEach((item) => item.classList.toggle('is-active', item === thumbnail));
 }
-
-thumbnails.forEach((thumbnail, index) => {
-  thumbnail.addEventListener('click', () => showSlide(index));
-});
 
 previousButton?.addEventListener('click', () => showSlide(currentIndex - 1));
 nextButton?.addEventListener('click', () => showSlide(currentIndex + 1));
+
+let swipeStartX = 0;
+let swipeStartY = 0;
+let swipePointerId: number | null = null;
+let suppressClick = false;
+
+carouselMain?.addEventListener('pointerdown', (event) => {
+  if (event.pointerType === 'mouse' || (event.target as Element).closest('.hoodie-carousel__prev, .hoodie-carousel__next')) return;
+  swipeStartX = event.clientX;
+  swipeStartY = event.clientY;
+  swipePointerId = event.pointerId;
+  carouselMain.setPointerCapture(event.pointerId);
+});
+
+carouselMain?.addEventListener('pointerup', (event) => {
+  if (event.pointerId !== swipePointerId) return;
+  const deltaX = event.clientX - swipeStartX;
+  const deltaY = event.clientY - swipeStartY;
+  swipePointerId = null;
+  if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+
+  event.preventDefault();
+  suppressClick = true;
+  showSlide(currentIndex + (deltaX < 0 ? 1 : -1));
+});
+
+carouselMain?.addEventListener('pointercancel', () => {
+  swipePointerId = null;
+});
+
+carouselMain?.addEventListener('click', (event) => {
+  if (!suppressClick) return;
+  event.preventDefault();
+  event.stopPropagation();
+  suppressClick = false;
+}, true);
+

@@ -1,5 +1,8 @@
 import Matter from 'matter-js';
 import decomp from 'poly-decomp';
+import union24342 from '../assets/figma-union-243-42.svg';
+import union24330 from '../assets/figma-union-243-30.svg';
+import union24313 from '../assets/figma-union-243-13.svg';
 
 Matter.Common.setDecomp(decomp);
 const { Engine, Composite, Bodies, Body, Mouse, MouseConstraint, Query } = Matter;
@@ -8,18 +11,26 @@ const { Engine, Composite, Bodies, Body, Mouse, MouseConstraint, Query } = Matte
 const SPECS = [
   { type: 'circle',   color: '#ff2e2e' },
   { type: 'triangle', color: '#ff6a00' },
-  { type: 'square',   color: '#2e6bff' },
+  { type: 'image',    color: '#b618ff', asset: union24342, assetWidth: 105.245, assetHeight: 196.917 },
   { type: 'spiral',   color: '#19d219' },
   { type: 'star',     color: '#c026d3', points: 8 },
   { type: 'rainbow',  color: '#5b4fe6' },
-  { type: 'tile',     color: '#ffe600', link: 'https://purduehackers.com' },
+  { type: 'image',    color: '#00ffd5', asset: union24330, assetWidth: 243.794, assetHeight: 97.685 },
   { type: 'diamond',  color: '#ff2ebd' },
   { type: 'flower',   color: '#00e5ff' },
   { type: 'cross',    color: '#b8ff00' },
   { type: 'capsule',  color: '#ff4d6d' },
-  { type: 'leaf',     color: '#00ff99' },
-  { type: 'gem',      color: '#9b5cff' },
+  { type: 'cloud',   color: '#00c853' },
+  { type: 'image',    color: '#ffe100', asset: union24313, assetWidth: 287.412, assetHeight: 185.588 },
 ];
+
+const imageCache = new Map<any, HTMLImageElement>();
+for (const spec of SPECS) {
+  if (spec.type !== 'image') continue;
+  const image = new Image();
+  image.src = spec.asset.src;
+  imageCache.set(spec.asset, image);
+}
 
 let activeCanvas: HTMLCanvasElement | null = null;
 
@@ -45,7 +56,7 @@ let layout = { fontSize: 0, scaleX: 1, capHeight: 0, xOrigin: 0 };
 let W = 0, H = 0, dpr = 1;
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
-const shapeSize = () => Math.max(44, Math.min(112, Math.min(W, H) * 0.075));
+const shapeSize = () => Math.max(44, Math.min(112, Math.min(W, H) * (isMobile ? 0.075 : 0.082)));
 
 // ---- shape geometry (local verts centered on ~centroid) ----
 function centerVerts(v: { x: number; y: number }[]) {
@@ -91,18 +102,23 @@ function capsuleVerts(s: number) {
     { x: -s, y: s * 0.55 }, { x: -s, y: -s * 0.55 },
   ];
 }
-function leafVerts(s: number) {
-  return [
-    { x: 0, y: -s }, { x: s * 0.7, y: -s * 0.3 },
-    { x: s * 0.75, y: s * 0.35 }, { x: 0, y: s },
-    { x: -s * 0.75, y: s * 0.35 }, { x: -s * 0.7, y: -s * 0.3 },
-  ];
-}
 function gemVerts(s: number) {
   return [
     { x: -s * 0.55, y: -s }, { x: s * 0.55, y: -s },
     { x: s, y: -s * 0.2 }, { x: s * 0.55, y: s },
     { x: -s * 0.55, y: s }, { x: -s, y: -s * 0.2 },
+  ];
+}
+function cloudVerts(s: number) {
+  return [
+    { x: -s * 1.25, y: s * 0.45 }, { x: -s * 1.3, y: s * 0.1 },
+    { x: -s * 1.15, y: -s * 0.2 }, { x: -s * 0.85, y: -s * 0.25 },
+    { x: -s * 0.72, y: -s * 0.62 }, { x: -s * 0.4, y: -s * 0.82 },
+    { x: -s * 0.05, y: -s * 0.78 }, { x: s * 0.2, y: -s * 0.55 },
+    { x: s * 0.42, y: -s * 0.83 }, { x: s * 0.78, y: -s * 0.78 },
+    { x: s * 1.02, y: -s * 0.5 }, { x: s * 1.05, y: -s * 0.2 },
+    { x: s * 1.3, y: -s * 0.08 }, { x: s * 1.4, y: s * 0.25 },
+    { x: s * 1.28, y: s * 0.55 },
   ];
 }
 function flowerVerts(s: number, petals = 8) {
@@ -140,6 +156,8 @@ function buildShape(spec: any, x: number, y: number) {
   let body: any;
   let localVerts: { x: number; y: number }[] | null = null;
   let radius = size;
+  let imageWidth = 0;
+  let imageHeight = 0;
   const ring = { rx: 0, ry: 0, thick: 0, a0: 0, a1: 0, cx: 0, cy: 0 };
   let cells: { x: number; y: number }[] | null = null; // tile cell centers (local)
   let cellSide = 0;
@@ -163,6 +181,12 @@ function buildShape(spec: any, x: number, y: number) {
     // angle still 0 here) so drawing can follow the real segments
     ring.cx = x - body.position.x;
     ring.cy = y - body.position.y;
+  } else if (spec.type === 'image') {
+    const maxDimension = size * 2.25;
+    const scale = maxDimension / Math.max(spec.assetWidth, spec.assetHeight);
+    imageWidth = spec.assetWidth * scale;
+    imageHeight = spec.assetHeight * scale;
+    body = Bodies.rectangle(x, y, imageWidth, imageHeight, opts);
   } else if (spec.type === 'tile') {
     // 5 yellow cells of a 3x3 grid (col, row); row grows downward
     const grid = [[1, 0], [1, 1], [2, 1], [0, 2], [2, 2]];
@@ -180,7 +204,7 @@ function buildShape(spec: any, x: number, y: number) {
     else if (spec.type === 'flower') localVerts = flowerVerts(size * 1.05);
     else if (spec.type === 'cross') localVerts = crossVerts(size * 0.9);
     else if (spec.type === 'capsule') localVerts = capsuleVerts(size * 0.9);
-    else if (spec.type === 'leaf') localVerts = leafVerts(size * 1.1);
+    else if (spec.type === 'cloud') localVerts = cloudVerts(size * 1.1);
     else if (spec.type === 'gem') localVerts = gemVerts(size * 1.1);
     else localVerts = starVerts(size * 1.2, spec.points!); // star
     localVerts = centerVerts(localVerts);
@@ -194,7 +218,7 @@ function buildShape(spec: any, x: number, y: number) {
   Body.setAngle(body, rand(0, Math.PI * 2));
   if (showText) Body.setAngularVelocity(body, rand(-0.12, 0.12));
   else Body.setStatic(body, true);
-  body.plugin = { ...spec, localVerts, radius, ring, cells, cellSide };
+  body.plugin = { ...spec, localVerts, radius, imageWidth, imageHeight, ring, cells, cellSide };
   shapes.push(body);
   Composite.add(engine.world, body);
 }
@@ -257,12 +281,21 @@ function drawText() {
 }
 
 function drawShape(b: any) {
-  const { type, color, localVerts, radius, ring, cells, cellSide } = b.plugin;
+  const { type, color, localVerts, radius, imageWidth, imageHeight, ring, cells, cellSide, asset } = b.plugin;
   const { x, y } = b.position;
   ctx.fillStyle = color;
   ctx.strokeStyle = color;
 
-  if (type === 'circle') {
+  if (type === 'image') {
+    const image = imageCache.get(asset);
+    if (image?.complete && image.naturalWidth > 0) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(b.angle);
+      ctx.drawImage(image, -imageWidth / 2, -imageHeight / 2, imageWidth, imageHeight);
+      ctx.restore();
+    }
+  } else if (type === 'circle') {
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
@@ -546,18 +579,19 @@ function start() {
   }, { once: true });
 }
 
-  // Start immediately so the physics layer never waits on font loading.
-  // Re-measure once the local font is ready so the canvas text keeps its intended width.
-  start();
-  const fontset = (document as any).fonts;
-  if (fontset?.load) {
-    Promise.all([
-      fontset.load('700 100px "PolySans Inky"'),
-      fontset.load('normal 100px "PolySans Inky"'),
-    ])
-      .then(() => resize())
-      .catch(() => {});
-  }
+  // Wait for the exact weight before the first canvas draw; otherwise fallback
+  // text flashes and gets replaced by the loaded font.
+  (async () => {
+    const fontset = (document as any).fonts;
+    if (fontset?.load) {
+      try {
+        await fontset.load('400 100px "PolySans Inky"');
+      } catch {
+        // Use the fallback if the font cannot be loaded.
+      }
+    }
+    start();
+  })();
 }
 
 document.addEventListener('astro:page-load', initScene);
