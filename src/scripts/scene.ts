@@ -1,8 +1,8 @@
 import Matter from 'matter-js';
 import decomp from 'poly-decomp';
-import union24342 from '../assets/figma-union-243-42.svg';
-import union24330 from '../assets/figma-union-243-30.svg';
-import union24313 from '../assets/figma-union-243-13.svg';
+import union24342 from '../assets/figma-union-243-42.svg?url';
+import union24330 from '../assets/figma-union-243-30.svg?url';
+import union24313 from '../assets/figma-union-243-13.svg?url';
 
 Matter.Common.setDecomp(decomp);
 const { Engine, Composite, Bodies, Body, Mouse, MouseConstraint, Query } = Matter;
@@ -26,9 +26,9 @@ const SPECS = [
 
 const imageCache = new Map<any, HTMLImageElement>();
 for (const spec of SPECS) {
-  if (spec.type !== 'image') continue;
+  if (spec.type !== 'image' || !spec.asset) continue;
   const image = new Image();
-  image.src = spec.asset.src;
+  image.src = spec.asset;
   imageCache.set(spec.asset, image);
 }
 
@@ -243,7 +243,6 @@ function spawnAll() {
 
   if (isMobile) {
     const columns = 5;
-    const rows = Math.ceil(SPECS.length / columns);
     const heapFloor = H - layout.capHeight - size * 1.25;
     const gapX = W / (columns + 1);
     const gapY = size * 1.25;
@@ -474,6 +473,9 @@ function frame(now: number) {
 function start() {
   const controller = new AbortController();
   let tiltRequested = false;
+  let shakeRequested = false;
+  let motionGravity: { x: number; y: number; z: number } | null = null;
+  let lastShakeAt = 0;
 
   const handleOrientation = (event: DeviceOrientationEvent) => {
     if (event.beta == null || event.gamma == null) return;
@@ -481,6 +483,48 @@ function start() {
     const gamma = Math.max(-90, Math.min(90, event.gamma)) * Math.PI / 180;
     engine.gravity.x = Math.sin(gamma) * gravity;
     engine.gravity.y = Math.sin(beta) * gravity;
+  };
+
+  const handleMotion = (event: DeviceMotionEvent) => {
+    const vector = (value: DeviceMotionEvent['acceleration'] | DeviceMotionEvent['accelerationIncludingGravity']) =>
+      value?.x != null && value.y != null && value.z != null
+        ? { x: value.x, y: value.y, z: value.z }
+        : null;
+
+    const direct = vector(event.acceleration);
+    let acceleration = direct && Math.hypot(direct.x, direct.y, direct.z) > 0.05 ? direct : null;
+    if (!acceleration) {
+      const sample = vector(event.accelerationIncludingGravity);
+      if (!sample) return;
+      if (!motionGravity) motionGravity = sample;
+      motionGravity.x += (sample.x - motionGravity.x) * 0.12;
+      motionGravity.y += (sample.y - motionGravity.y) * 0.12;
+      motionGravity.z += (sample.z - motionGravity.z) * 0.12;
+      acceleration = {
+        x: sample.x - motionGravity.x,
+        y: sample.y - motionGravity.y,
+        z: sample.z - motionGravity.z,
+      };
+    }
+
+    const magnitude = Math.hypot(acceleration.x, acceleration.y, acceleration.z);
+    const now = performance.now();
+    if (magnitude < 8 || now - lastShakeAt < 90) return;
+    lastShakeAt = now;
+
+    const kick = Math.min(8, (magnitude - 8) * 0.55);
+    const x = acceleration.x / magnitude;
+    const y = acceleration.y / magnitude;
+    for (const body of shapes) {
+      const jitter = 0.85 + Math.random() * 0.3;
+      Body.setVelocity(body, {
+        x: Math.max(-26, Math.min(26, body.velocity.x + x * kick * jitter)),
+        y: Math.max(-26, Math.min(26, body.velocity.y + y * kick * jitter)),
+      });
+      Body.setAngularVelocity(body, Math.max(-0.55, Math.min(0.55,
+        body.angularVelocity + (Math.random() - 0.5) * kick * 0.06,
+      )));
+    }
   };
 
   const enableTilt = () => {
@@ -510,8 +554,42 @@ function start() {
     }
   };
 
+  const enableShake = () => {
+    if (shakeRequested || !showText || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    shakeRequested = true;
+    const MotionEvent = (window as any).DeviceMotionEvent;
+    if (!MotionEvent) return;
+
+    const listen = () => window.addEventListener('devicemotion', handleMotion, {
+      passive: true,
+      signal: controller.signal,
+    });
+
+    if (typeof MotionEvent.requestPermission === 'function') {
+      MotionEvent.requestPermission().then((state: string) => {
+        if (state === 'granted') listen();
+        else {
+          shakeRequested = false;
+          console.warn('[scene] Shake permission was not granted:', state);
+        }
+      }).catch((error: unknown) => {
+        shakeRequested = false;
+        console.warn('[scene] Shake permission request failed:', error);
+      });
+    } else {
+      listen();
+    }
+  };
+
+  const enableMotion = () => {
+    enableTilt();
+    enableShake();
+  };
+
   const OrientationEvent = (window as any).DeviceOrientationEvent;
+  const MotionEvent = (window as any).DeviceMotionEvent;
   if (OrientationEvent && typeof OrientationEvent.requestPermission !== 'function') enableTilt();
+  if (MotionEvent && typeof MotionEvent.requestPermission !== 'function') enableShake();
 
   resize();
   window.addEventListener('resize', resize, { signal: controller.signal });
@@ -538,12 +616,12 @@ function start() {
   canvas.addEventListener('pointerleave', () => {
     canvas.style.cursor = 'default';
   }, { signal: controller.signal });
-  window.addEventListener('click', enableTilt, {
+  window.addEventListener('click', enableMotion, {
     signal: controller.signal,
     capture: true,
   });
   canvas.addEventListener('pointerdown', (event) => {
-    enableTilt();
+    enableMotion();
     down = { x: event.offsetX, y: event.offsetY, t: event.timeStamp };
   }, { signal: controller.signal });
   canvas.addEventListener('pointerup', (event) => {

@@ -189,7 +189,7 @@
 
 .notify-form__prompt-processing,
 .notify-form__prompt-error {
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   opacity: 0;
   filter: blur(4px);
@@ -199,6 +199,10 @@
 .notify-form__prompt.is-processing .notify-form__prompt-processing,
 .notify-form__prompt.is-error .notify-form__prompt-error {
   animation: notify-word-in 500ms cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+.notify-form__success {
+  align-items: flex-start;
 }
 
 .notify-form__success.is-visible {
