@@ -15,7 +15,7 @@ const SPECS = [
   { type: 'spiral',   color: '#19d219' },
   { type: 'star',     color: '#c026d3', points: 8 },
   { type: 'rainbow',  color: '#5b4fe6' },
-  { type: 'image',    color: '#00ffd5', asset: union24330, assetWidth: 243.794, assetHeight: 97.685 },
+  { type: 'tile',    color: '#fcd202', link: 'https://purduehackers.com' },
   { type: 'diamond',  color: '#ff2ebd' },
   { type: 'flower',   color: '#00e5ff' },
   { type: 'cross',    color: '#b8ff00' },
