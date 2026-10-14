@@ -1,6 +1,9 @@
 export {};
 
+function initNotify() {
 const form = document.querySelector<HTMLFormElement>('.notify-form');
+if (!form || form.dataset.notifyInitialized) return;
+form.dataset.notifyInitialized = 'true';
 const input = form?.querySelector<HTMLInputElement>('input[name="email"]');
 const submit = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
 const prompt = form?.querySelector<HTMLElement>('.notify-form__prompt');
@@ -46,7 +49,7 @@ function showSuccess() {
 input?.addEventListener('pointerdown', () => input.dataset.pointerFocus = 'true');
 input?.addEventListener('blur', () => delete input.dataset.pointerFocus);
 
-form?.addEventListener('submit', async (event) => {
+form.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!input) return;
 
@@ -87,3 +90,7 @@ form?.addEventListener('submit', async (event) => {
     if (submit) submit.disabled = false;
   }
 });
+}
+
+document.addEventListener('astro:page-load', initNotify);
+initNotify();
