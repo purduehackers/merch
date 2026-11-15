@@ -1,0 +1,429 @@
+html,
+body {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #020202;
+}
+
+@font-face {
+  font-family: "PolySans Neutral";
+  src: url("https://f3ibyzhjurhjiwis.public.blob.vercel-storage.com/PolySans-Neutral.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PolySans Inky";
+  src: url("https://f3ibyzhjurhjiwis.public.blob.vercel-storage.com/PolySans-Inky.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PolySans Slim";
+  src: url("https://f3ibyzhjurhjiwis.public.blob.vercel-storage.com/PolySans-Slim.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PolySans Bulky";
+  src: url("https://f3ibyzhjurhjiwis.public.blob.vercel-storage.com/PolySans-Bulky.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.preorder {
+  /* panel scale: the 755.576x982 Figma panel fit into the left half of the viewport */
+  --s: min(50vw / 755.576, 100svh / 982);
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: #fff;
+  background: #020202;
+  font-family: "PolySans Neutral", Arial, sans-serif;
+}
+
+.preorder__panel {
+  /* content column: the Figma panel's 685.905-wide content, centred in the left half */
+  --col: calc(685.905 * var(--s));
+  --gutter: calc((50vw - var(--col)) / 2);
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 1;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 50vw;
+  height: 100%;
+  padding: calc(63.645 * var(--s)) 0 calc(50.92 * var(--s));
+}
+
+/* blurred shape layer behind the form panel (Figma group 12:254 under overlay 10:194).
+   --b cover-scales the 755.576x982 panel artwork to the panel. */
+.preorder__shapes {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #0d0d0d;
+}
+
+.preorder__shapes::after {
+  /* overlay 10:194 */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 78%);
+}
+
+.preorder__shapes-art {
+  --b: max(50vw / 755.576, 100svh / 982);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(755.576 * var(--b));
+  height: calc(982 * var(--b));
+  transform: translate(-50%, -50%);
+  filter: blur(calc(15 * var(--b)));
+}
+
+.preorder__shape {
+  position: absolute;
+  top: calc(var(--cy) * var(--b));
+  left: calc(var(--cx) * var(--b));
+  display: block;
+  width: calc(var(--w) * var(--b));
+  height: calc(var(--h) * var(--b));
+  max-width: none;
+  transform: translate(-50%, -50%) rotate(var(--r));
+}
+
+.preorder__shape--red { background: #f00; }
+.preorder__shape--orange { --cx: 591.025; --cy: 628.575; --w: 223.35; --h: 223.35; --r: 0deg; }
+.preorder__shape--arc { --cx: 292.362; --cy: 676.69; --w: 365.567; --h: 209.665; --r: 156.43deg; }
+.preorder__shape--shirt { --cx: 417.983; --cy: 869.984; --w: 310.772; --h: 236.042; --r: -23.55deg; }
+.preorder__shape--teal { --cx: 646.725; --cy: 806.124; --w: 353.223; --h: 141.531; --r: 50.23deg; }
+.preorder__shape--purple { --cx: 123.216; --cy: 516.301; --w: 214.381; --h: 354.126; --r: 60deg; }
+.preorder__shape--red { --cx: 133.775; --cy: 849.425; --w: 209.754; --h: 209.754; --r: 19.42deg; }
+.preorder__shape--star { --cx: 603.249; --cy: 366.256; --w: 278.923; --h: 268.42; --r: -23.76deg; }
+
+.preorder__notice {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 0 var(--gutter);
+  color: rgb(255 255 255 / 50%);
+  font-family: "PolySans Slim", "PolySans Neutral", Arial, sans-serif;
+  font-size: calc(20 * var(--s));
+  line-height: 0.9;
+}
+
+.preorder__notice a {
+  color: inherit;
+}
+
+.preorder__notice a:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+/* the form spans the whole panel (viewport edge to the split); its content sits in the centred column */
+.preorder__form {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  margin-top: calc(34.5 * var(--s));
+  padding: 0 var(--gutter);
+}
+
+.preorder__contact {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(19.876 * var(--s));
+  margin: 0;
+}
+
+.preorder__contact label {
+  display: grid;
+  /* label -> box spacing; matches "select items" -> cards (26.1 - 19.2 legend height) */
+  gap: calc(6.9 * var(--s));
+}
+
+.preorder__contact label > span,
+.preorder__items legend {
+  padding: 0;
+  color: #fff;
+  font-size: calc(24 * var(--s));
+  line-height: 0.8;
+}
+
+.preorder__contact input {
+  box-sizing: border-box;
+  width: 100%;
+  height: calc(41.086 * var(--s));
+  margin: 0;
+  padding: 0 calc(9 * var(--s));
+  border: 0;
+  border-radius: 0;
+  color: #111;
+  background: #fff;
+  font: 400 calc(20 * var(--s))/1 "PolySans Slim", "PolySans Neutral", Arial, sans-serif;
+}
+
+.preorder__contact input:focus-visible,
+.preorder__next:focus-visible {
+  outline: calc(3 * var(--s)) solid #fff;
+  outline-offset: calc(3 * var(--s));
+}
+
+.preorder__items {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: calc(11.995 * var(--s));
+  box-sizing: border-box;
+  margin: calc(52.5 * var(--s)) 0 0;
+  padding: calc(26.1 * var(--s)) 0 0;
+  border: 0;
+}
+
+.preorder__items legend {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+}
+
+.preorder__item {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  background: #fffdf7;
+  cursor: pointer;
+}
+
+.preorder__item > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transition: opacity 120ms ease;
+}
+
+.preorder__item input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* keyboard focus only, so a mouse click doesn't leave a ring behind after deselecting */
+.preorder__item:has(input:focus-visible) {
+  outline: calc(2 * var(--s)) solid #fff;
+  outline-offset: calc(3 * var(--s));
+}
+
+/* selected: yellow ring + check badge */
+.preorder__item:has(input:checked) {
+  outline: calc(4 * var(--s)) solid #ffcd38;
+  outline-offset: calc(3 * var(--s));
+}
+
+.preorder__item::after {
+  content: "";
+  position: absolute;
+  top: calc(8 * var(--s));
+  right: calc(8 * var(--s));
+  width: calc(28 * var(--s));
+  height: calc(28 * var(--s));
+  border-radius: 50%;
+  background: #ffcd38 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 65% no-repeat;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 120ms ease, transform 120ms ease;
+  pointer-events: none;
+}
+
+.preorder__item:has(input:checked)::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.preorder__item-name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* summary + total are pushed to the bottom; new rows grow upward so the total never moves */
+.preorder__summary {
+  display: grid;
+  margin-top: auto;
+  padding-bottom: calc(8.5 * var(--s));
+  color: #fff;
+  font-size: calc(20 * var(--s));
+  line-height: calc(36.64 * var(--s));
+}
+
+.preorder__summary > div,
+.preorder__total {
+  display: flex;
+  justify-content: space-between;
+}
+
+.preorder__total {
+  box-sizing: border-box;
+  padding-top: calc(14 * var(--s));
+  border-top: calc(1 * var(--s)) solid rgb(255 255 255 / 60%);
+  font-size: calc(24 * var(--s));
+  font-weight: 600;
+}
+
+.preorder__form[hidden],
+.preorder__checkout[hidden],
+.preorder__back[hidden] {
+  display: none;
+}
+
+.preorder__error {
+  min-height: 1em;
+  margin: calc(12 * var(--s)) 0 0;
+  color: #ff8a8a;
+  font-size: calc(18 * var(--s));
+  text-align: right;
+}
+
+.preorder__error:empty {
+  min-height: 0;
+  margin: 0;
+}
+
+/* step 2: Stripe embedded payment form, in the same centred column as the form */
+.preorder__checkout {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin-top: calc(34.5 * var(--s));
+  padding: 0 var(--gutter);
+  overflow-y: auto;
+}
+
+.preorder__back {
+  margin: 0 0 calc(16 * var(--s));
+  padding: 0;
+  border: 0;
+  color: rgb(255 255 255 / 70%);
+  background: none;
+  font: 400 calc(20 * var(--s))/1 "PolySans Neutral", Arial, sans-serif;
+  cursor: pointer;
+}
+
+.preorder__back:hover {
+  color: #fff;
+}
+
+.preorder__back:focus-visible {
+  outline: calc(2 * var(--s)) solid #fff;
+  outline-offset: calc(3 * var(--s));
+}
+
+.preorder__checkout-message {
+  margin: 0 0 calc(16 * var(--s));
+  color: #fff;
+  font-size: calc(24 * var(--s));
+}
+
+.preorder__checkout-message:empty {
+  display: none;
+}
+
+.preorder__next {
+  align-self: flex-end;
+  display: block;
+  width: calc(149.139 * var(--s));
+  height: calc(33.224 * var(--s));
+  margin: calc(45 * var(--s)) 0 0;
+  padding: 0;
+  border: 0;
+  color: #000;
+  background: #fffdf7;
+  font: 400 calc(24 * var(--s))/1 "PolySans Neutral", Arial, sans-serif;
+  cursor: pointer;
+}
+
+.preorder__next:hover {
+  color: #fff;
+  background: #333;
+}
+
+/* word art fills everything right of the panel, scaled to cover that region */
+.preorder__word-art {
+  position: absolute;
+  inset: 0 0 0 50vw;
+  overflow: hidden;
+  pointer-events: none;
+  container-type: size;
+}
+
+.preorder__word-art-inner {
+  /* letter centres spread with the region (x by width, y by height);
+     glyphs sized from height, allowed to grow up to 1.15x on wide regions */
+  --wx: calc(100cqw / 756.424);
+  --wy: calc(100cqh / 982);
+  --w: max(var(--wy), min(var(--wx), 1.15 * var(--wy)));
+  position: absolute;
+  inset: 0;
+  font-family: "PolySans Bulky", Arial, sans-serif;
+  font-size: calc(367.431 * var(--w));
+  line-height: normal;
+}
+
+.preorder__letter {
+  position: absolute;
+  top: calc(var(--y) * var(--wy));
+  left: calc(var(--x) * var(--wx));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--bw) * var(--w));
+  height: calc(var(--bh) * var(--w));
+  color: #fff;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
+.preorder__letter span { display: block; }
+.preorder__letter--p { --x: 148.688; --y: 171.51; --bw: 371.901; --bh: 477.666; }
+.preorder__letter--p span { transform: rotate(20.16deg); }
+.preorder__letter--o { --x: 133.212; --y: 399.444; --bw: 320.62; --bh: 447.388; }
+.preorder__letter--o span { transform: rotate(-6.18deg); }
+.preorder__letter--r1 { --x: 356.261; --y: 585.601; --bw: 289.734; --bh: 441.044; }
+.preorder__letter--r1 span { transform: rotate(5.16deg); }
+.preorder__letter--e1 { --x: 200.675; --y: 843.55; --bw: 267.928; --bh: 441.68; }
+.preorder__letter--e1 span { transform: rotate(-6.18deg); }
+.preorder__letter--r2 { --x: 398.941; --y: 280.406; --bw: 408.649; --bh: 487.913; }
+.preorder__letter--r2 span { transform: rotate(-25.39deg); }
+.preorder__letter--d { --x: 608.979; --y: 516.898; --bw: 412.431; --bh: 490.149; }
+.preorder__letter--d span { transform: rotate(25.04deg); }
+.preorder__letter--e2 { --x: 608.978; --y: 175.75; --bw: 267.928; --bh: 441.68; }
+.preorder__letter--e2 span { transform: rotate(-6.18deg); }
+.preorder__letter--r3 { --x: 576.8; --y: 783.532; --bw: 441.072; --bh: 490.024; }
+.preorder__letter--r3 span { transform: rotate(-33.04deg); }

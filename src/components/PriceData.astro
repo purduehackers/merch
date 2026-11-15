@@ -1,0 +1,9 @@
+---
+// Hands the Stripe prices to the page's scripts; read them with readPrices() from preorder-data.js.
+interface Props {
+    prices: Record<string, number>;
+}
+const { prices } = Astro.props;
+---
+
+<script type="application/json" id="item-prices" set:html={JSON.stringify(prices)} />

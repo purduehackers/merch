@@ -18,11 +18,12 @@ import "../styles/transitions.css";
     <ClientRouter />
     <link rel="icon" href="/bro/icon.svg" type="image/svg+xml">
     <link rel="prefetch" href="/archive">
+    <!-- Stripe.js must load from js.stripe.com, never bundled (PCI) -->
+    <script is:inline src="https://js.stripe.com/dahlia/stripe.js"></script>
   </head>
   <body>
     <div class="page-shell">
       <slot />
     </div>
-
   </body>
 </html>

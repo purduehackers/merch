@@ -1,0 +1,182 @@
+---
+import "../styles/preorder.css";
+import Layout from "../components/layout.astro";
+import PriceData from "../components/PriceData.astro";
+import { getPriceAmounts } from "../scripts/stripe-prices";
+
+const prices = await getPriceAmounts();
+const label = (id: string) => (prices[id] != null ? `${id}, $${prices[id]}` : id);
+---
+
+<Layout>
+    <main class="preorder" aria-label="W2026 merch preorder">
+        <section class="preorder__panel">
+            <div class="preorder__shapes" aria-hidden="true">
+                <div class="preorder__shapes-art">
+                    <img
+                        class="preorder__shape preorder__shape--orange"
+                        data-node-id="10:195"
+                        src="/preorder/shapes/orange.svg"
+                        alt=""
+                    />
+                    <img
+                        class="preorder__shape preorder__shape--arc"
+                        data-node-id="10:196"
+                        src="/preorder/shapes/arc.svg"
+                        alt=""
+                    />
+                    <img
+                        class="preorder__shape preorder__shape--shirt"
+                        data-node-id="10:197"
+                        src="/preorder/shapes/shirt.svg"
+                        alt=""
+                    />
+                    <img
+                        class="preorder__shape preorder__shape--teal"
+                        data-node-id="10:199"
+                        src="/preorder/shapes/teal.svg"
+                        alt=""
+                    />
+                    <img
+                        class="preorder__shape preorder__shape--purple"
+                        data-node-id="10:202"
+                        src="/preorder/shapes/purple.svg"
+                        alt=""
+                    />
+                    <span
+                        class="preorder__shape preorder__shape--red"
+                        data-node-id="10:205"
+                    ></span>
+                    <img
+                        class="preorder__shape preorder__shape--star"
+                        data-node-id="10:207"
+                        src="/preorder/shapes/star.svg"
+                        alt=""
+                    />
+                </div>
+            </div>
+            <p class="preorder__notice">
+                we do not have the means to ship merch on a large scale. merch
+                is for purdue students/those in the greater lafayette area
+                currently. reach out to request shipping at{" "}
+                <a href="mailto:phackers@purdue.edu">phackers@purdue.edu</a>.
+            </p>
+            <form class="preorder__form" action="/api/preorder" method="post">
+                <div class="preorder__contact">
+                    <label>
+                        <span>name</span>
+                        <input
+                            name="name"
+                            type="text"
+                            autocomplete="name"
+                            placeholder="wack hacker"
+                            required
+                        />
+                    </label>
+                    <label>
+                        <span>email</span>
+                        <input
+                            name="email"
+                            type="email"
+                            autocomplete="email"
+                            placeholder="wackhacker@gmail.com"
+                            required
+                        />
+                    </label>
+                </div>
+                <fieldset class="preorder__items">
+                    <legend>your cart</legend>
+                    <label class="preorder__item">
+                        <input type="checkbox" name="items" value="shirt" />
+                        <img
+                            data-node-id="12:255"
+                            src="/preorder/figma-shirt.png"
+                            alt=""
+                        />
+                        <span class="preorder__item-name">{label("shirt")}</span>
+                    </label>
+                    <label class="preorder__item">
+                        <input type="checkbox" name="items" value="tote" />
+                        <img
+                            data-node-id="12:261"
+                            src="/preorder/figma-tote.png"
+                            alt=""
+                        />
+                        <span class="preorder__item-name">{label("tote")}</span>
+                    </label>
+                    <label class="preorder__item">
+                        <input type="checkbox" name="items" value="socks" />
+                        <img
+                            data-node-id="12:270"
+                            src="/preorder/figma-socks.png"
+                            alt=""
+                        />
+                        <span class="preorder__item-name">{label("socks")}</span>
+                    </label>
+                    <label class="preorder__item">
+                        <input type="checkbox" name="items" value="keychain" />
+                        <img
+                            data-node-id="12:300"
+                            src="/preorder/figma-keychain.png"
+                            alt=""
+                        />
+                        <span class="preorder__item-name">{label("keychain")}</span>
+                    </label>
+                </fieldset>
+                <div class="preorder__summary" role="status"></div>
+                <div class="preorder__total">
+                    <span>total</span>
+                    <output data-preorder-total>0.00</output>
+                </div>
+                <p class="preorder__error" role="alert" data-preorder-error></p>
+                <button class="preorder__next" type="submit">
+                    next
+                </button>
+            </form>
+            <div class="preorder__checkout" hidden>
+                <button class="preorder__back" type="button" data-checkout-back>
+                    &larr; back
+                </button>
+                <p
+                    class="preorder__checkout-message"
+                    role="status"
+                    data-checkout-message
+                ></p>
+                <div id="checkout-form"></div>
+            </div>
+            <script>
+                import "../scripts/preorder";
+                import "../scripts/preorder-checkout";
+            </script>
+        </section>
+        <div class="preorder__word-art" aria-hidden="true">
+            <div class="preorder__word-art-inner">
+                <span class="preorder__letter preorder__letter--p">
+                    <span>P</span>
+                </span>
+                <span class="preorder__letter preorder__letter--o">
+                    <span>O</span>
+                </span>
+                <span class="preorder__letter preorder__letter--r1">
+                    <span>R</span>
+                </span>
+                <span class="preorder__letter preorder__letter--e1">
+                    <span>E</span>
+                </span>
+                <span class="preorder__letter preorder__letter--r2">
+                    <span>R</span>
+                </span>
+                <span class="preorder__letter preorder__letter--d">
+                    <span>D</span>
+                </span>
+                <span class="preorder__letter preorder__letter--e2">
+                    <span>E</span>
+                </span>
+                <span class="preorder__letter preorder__letter--r3">
+                    <span>R</span>
+                </span>
+            </div>
+        </div>
+    <PriceData prices={prices} />
+    </main>
+</Layout>
