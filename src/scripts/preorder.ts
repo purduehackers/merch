@@ -1,26 +1,38 @@
-import { readPrices, selectedItems } from "./preorder-data.js";
+// /preorder: shows the cart filled on the homepage (thumbnail, name, size, quantity, price)
+// above the total. Quantities can be changed and lines removed here too; checkout reads the
+// cart itself (see preorder-checkout.ts).
+import { CART_EVENT, cartTotal, readCart, writeCart, type Cart } from "./cart";
+import { renderCartLines } from "./cart-view";
+import { readPrices } from "./preorder-data.js";
 
-document.querySelectorAll<HTMLFormElement>(".preorder__form").forEach((form) => {
+const init = () => {
+  const form = document.querySelector<HTMLFormElement>(".preorder__form");
+  const list = form?.querySelector<HTMLElement>("[data-cart-lines]");
+  if (!form || !list || form.dataset.cartReady) return;
+  form.dataset.cartReady = "true";
+
   const total = form.querySelector<HTMLOutputElement>("[data-preorder-total]");
-  const summary = form.querySelector<HTMLDivElement>(".preorder__summary");
-  const inputs = [...form.querySelectorAll<HTMLInputElement>('input[name="items"]')];
+  const empty = form.querySelector<HTMLElement>("[data-cart-empty]");
+  const next = form.querySelector<HTMLButtonElement>(".preorder__next");
+  const prices: Record<string, number> = readPrices();
 
-  const prices = readPrices();
-
-  const update = () => {
-    const selected = selectedItems(inputs.filter((item) => item.checked).map((item) => item.value), prices);
-    summary?.replaceChildren(...selected.map(({ name, price }) => {
-      const row = document.createElement("div");
-      const label = document.createElement("span");
-      const amount = document.createElement("output");
-      label.textContent = name;
-      amount.value = price.toFixed(2);
-      row.append(label, amount);
-      return row;
-    }));
-    if (total) total.value = selected.reduce((sum, item) => sum + item.price, 0).toFixed(2);
+  const render = (cart: Cart) => {
+    renderCartLines(list, cart, prices, (updated) => writeCart(updated));
+    if (empty) empty.hidden = cart.lines.length > 0;
+    // no preordering an empty cart
+    if (next) next.disabled = cart.lines.length === 0;
+    if (total) total.value = cartTotal(cart, prices).toFixed(2);
   };
 
-  inputs.forEach((item) => item.addEventListener("change", update));
-  update();
-});
+  const controller = new AbortController();
+  window.addEventListener(CART_EVENT, (event) => render((event as CustomEvent<Cart>).detail), {
+    signal: controller.signal,
+  });
+  window.addEventListener("storage", () => render(readCart()), { signal: controller.signal });
+  document.addEventListener("astro:before-swap", () => controller.abort(), { once: true });
+
+  render(readCart());
+};
+
+document.addEventListener("astro:page-load", init);
+init();

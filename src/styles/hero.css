@@ -1,7 +1,6 @@
 .home {
   --s: 0.0661375661vw;
   width: 100%;
-  min-height: max(min(128vw, 1935px), 100svh);
   overflow: hidden;
   background: transparent;
 }
@@ -15,7 +14,7 @@
 .home__stage {
   position: relative;
   width: min(100vw, 1512px);
-  height: max(min(128vw, 1935px), 100svh);
+  height: max(calc(999 * var(--s)), 100svh);
   overflow: hidden;
   margin-inline: auto;
   background: transparent;
@@ -33,18 +32,52 @@
   cursor: default;
 }
 
-.home__descriptor,
 .home__archive,
-.home__title,
-.notify-form,
-.shape,
-.product {
+.home__title {
   position: absolute;
 }
 
-.home__descriptor {
+/* tagline + the shop button under it, top left */
+.home__intro {
+  position: absolute;
   top: calc(26 * var(--s));
   left: calc(26 * var(--s));
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(18 * var(--s));
+  pointer-events: none;
+}
+
+.home__shop-link {
+  display: inline-flex;
+  height: calc(31 * var(--s));
+  align-items: center;
+  padding: 0 calc(10 * var(--s));
+  color: #000;
+  background: #fffdf7;
+  font-family: "PolySans Relax", sans-serif;
+  font-size: calc(25 * var(--s));
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  pointer-events: auto;
+  transition: background-color 150ms ease;
+}
+
+@media (hover: hover) {
+  .home__shop-link:hover {
+    background: #fcd202;
+  }
+}
+
+.home__shop-link:focus-visible {
+  outline: 3px solid #fcd202;
+  outline-offset: 3px;
+}
+
+.home__descriptor {
   width: calc(391 * var(--s));
   margin: 0;
   color: #fffdf7;
@@ -125,578 +158,539 @@
   z-index: 2;
 }
 
-.notify-form {
-  top: calc(1380 * var(--s));
-  left: 50%;
-  width: min(calc(280 * var(--s)), calc(100% - 32px));
-  min-height: calc(55 * var(--s));
-  margin: 0;
-  background: transparent;
-  transform: translateX(-50%);
-  z-index: 5;
-}
+/* ---------- shop: the four W2026 products, piled up ---------- */
 
-.notify-form__prompt {
+.home__shop {
+  --ease: cubic-bezier(0.2, 0, 0, 1);
   position: relative;
-  display: block;
-  height: calc(25 * var(--s));
+  display: grid;
+  max-width: 1512px;
+  box-sizing: border-box;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+  align-items: center;
+  gap: clamp(40px, 5vw, 96px);
+  margin-inline: auto;
+  padding: clamp(56px, 7vw, 112px) clamp(16px, 4vw, 72px);
   color: #0d0d0d;
-  font-family: Inconsolata, ui-monospace, monospace;
-  font-size: calc(20 * var(--s));
-  font-weight: 600;
-  line-height: 1;
-  text-align: center;
-  white-space: nowrap;
 }
 
-.notify-form__prompt-default {
+/* the pile: cutouts placed by --x/--y/--w, tilted by --r, stacked by --z */
+.pile {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 0.88;
+}
+
+.pile__item {
+  position: absolute;
+  top: var(--y);
+  left: var(--x);
+  z-index: var(--z);
+  width: var(--w);
+  pointer-events: none;
+  transform: rotate(var(--r));
+  transition:
+    transform 450ms var(--ease),
+    opacity 300ms var(--ease),
+    z-index 0s 450ms;
+}
+
+.pile__item img {
   display: block;
-  transition: opacity 700ms cubic-bezier(0.2, 0, 0, 1), filter 700ms cubic-bezier(0.2, 0, 0, 1), transform 700ms cubic-bezier(0.2, 0, 0, 1);
+  width: 100%;
+  height: auto;
+  user-select: none;
 }
 
-.notify-form__prompt.is-success .notify-form__prompt-default,
-.notify-form__prompt.is-processing .notify-form__prompt-default,
-.notify-form__prompt.is-error .notify-form__prompt-default {
-  opacity: 0;
-  filter: blur(4px);
-  transform: translateY(calc(-4 * var(--s)));
-}
-
-.notify-form__field {
-  height: calc(36 * var(--s));
-  background: #000;
-}
-
-.notify-form__prompt-processing,
-.notify-form__prompt-error,
-.notify-form__success {
+/* only the item's own outline (from product-cutouts.json) catches the pointer, so the
+   items underneath stay reachable through transparent corners */
+.pile__hit {
   position: absolute;
   inset: 0;
-  display: flex;
-  justify-content: center;
-  gap: calc(5 * var(--s));
-  margin: 0;
-  opacity: 0;
-  pointer-events: none;
-  color: #0d0d0d;
-  font-family: Inconsolata, ui-monospace, monospace;
-  font-size: max(16px, calc(20 * var(--s)));
-  font-weight: 600;
-  line-height: 1;
-  font-size: inherit;
-  gap: 0.25em;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.notify-form__prompt-processing,
-.notify-form__prompt-error {
-  align-items: flex-start;
-  justify-content: center;
-  opacity: 0;
-  filter: blur(4px);
-  transform: translateY(calc(4 * var(--s)));
+.home__shop[data-active]:not([data-active=""]) .pile__item {
+  opacity: 0.35;
+  transform: rotate(var(--r)) scale(0.97);
 }
 
-.notify-form__prompt.is-processing .notify-form__prompt-processing,
-.notify-form__prompt.is-error .notify-form__prompt-error {
-  animation: notify-word-in 500ms cubic-bezier(0.2, 0, 0, 1) forwards;
-}
-
-.notify-form__success {
-  align-items: flex-start;
-}
-
-.notify-form__success.is-visible {
+/* matches the dimming rule above in weight, and comes later, so it wins */
+.home__shop[data-active] .pile__item.is-active {
+  z-index: 10;
   opacity: 1;
+  transform: rotate(0deg) scale(var(--grow));
+  /* come to the front straight away; drop back only after shrinking */
+  transition:
+    transform 450ms var(--ease),
+    opacity 300ms var(--ease),
+    z-index 0s;
 }
 
-.notify-form__status:empty {
-  display: none;
+/* ---------- list + details ---------- */
+
+.shop-info {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 24px;
 }
 
-.notify-form__status {
-  margin: calc(10 * var(--s)) 0 0;
-  color: #0d0d0d;
-  font-family: Inconsolata, ui-monospace, monospace;
-  font-size: max(16px, calc(20 * var(--s)));
-  font-weight: 600;
+.shop-info__title {
+  margin: 0;
+  font-family: pixel, monospace;
+  font-size: clamp(28px, 2.6vw, 40px);
+  font-weight: 400;
   line-height: 1;
-  text-align: center;
-  opacity: 0;
-  filter: blur(4px);
-  transform: translateY(calc(4 * var(--s)));
 }
 
-.notify-form__status.is-visible {
-  animation: notify-word-in 700ms cubic-bezier(0.2, 0, 0, 1) forwards;
+.shop-list {
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid #0d0d0d;
+  list-style: none;
 }
 
-.notify-form__success span {
-  opacity: 0;
-  filter: blur(4px);
-  transform: translateY(calc(4 * var(--s)));
+.shop-list__row {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  box-sizing: border-box;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 10px;
+  border: 0;
+  border-top: 1px solid #0d0d0d;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
 }
 
-.notify-form__success.is-visible span {
-  animation: notify-word-in 700ms cubic-bezier(0.2, 0, 0, 1) forwards;
-  animation-delay: calc(var(--i) * 150ms);
-}
-
-@keyframes notify-word-in {
-  to {
-    opacity: 1;
-    filter: blur(0);
-    transform: translateY(0);
+/* hover only highlights; a click selects (see merch-pile.ts) */
+@media (hover: hover) {
+  .shop-list__row:hover {
+    background: rgb(13 13 13 / 7%);
   }
 }
 
-.items-background {
-  position: absolute;
-  top: calc(999 * var(--s));
-  right: 0;
-  bottom: 0;
-  left: 0;
-  background: transparent;
-  z-index: 0;
+.shop-list__row[aria-expanded="true"] {
+  color: #fffdf7;
+  background: #0d0d0d;
 }
 
-.lower-art {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  translate: calc(-20 * var(--s)) calc(18 * var(--s));
+.shop-list__row:focus-visible {
+  outline: 3px solid #0d0d0d;
+  outline-offset: 2px;
 }
 
-.notify-form {
-  translate: calc(-20 * var(--s)) calc(18 * var(--s));
+.shop-list__name {
+  font-family: "PolySans Relax", Arial, sans-serif;
+  font-size: clamp(22px, 1.9vw, 28px);
+  line-height: 1.1;
 }
 
-.cutout-group {
-  position: absolute;
-  inset: 0;
-  transform: scale(0.94);
-  transform-origin: 50% 50%;
+.shop-list__side {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 
-.notify-form input {
+.shop-list__state {
+  font-family: Inconsolata, ui-monospace, monospace;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.shop-list__price {
+  font-family: Inconsolata, ui-monospace, monospace;
+  font-size: clamp(20px, 1.6vw, 24px);
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* every panel sits in the same cell, so the box is as tall as the tallest one and the
+   button below doesn't jump as they swap; hidden ones stay laid out but invisible */
+.shop-detail {
+  display: grid;
+}
+
+/* each panel fills the shared cell, so the add button can sit at the same spot in every tab */
+.shop-detail > * {
+  grid-area: 1 / 1;
+}
+
+.shop-detail__hint {
+  align-self: start;
+}
+
+.shop-detail > [hidden] {
+  display: flex;
+  visibility: hidden;
+}
+
+.shop-detail__item {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.shop-detail__hint,
+.shop-detail__blurb {
+  margin: 0;
+  font-family: Inconsolata, ui-monospace, monospace;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-wrap: pretty;
+}
+
+.shop-detail__hint {
+  color: rgb(13 13 13 / 55%);
+}
+
+.shop-detail__sizing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.shop-detail__sizing figcaption {
+  margin: 0;
+  color: rgb(13 13 13 / 60%);
+  font-family: Inconsolata, ui-monospace, monospace;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+/* both charts get the frame of the taller one (the shirt, 843 × 304), so the sizes below
+   start at the same height whichever chart is showing */
+.size-chart {
+  aspect-ratio: 843 / 304;
+}
+
+.size-chart img {
   display: block;
   width: 100%;
   height: 100%;
-  min-width: 0;
-  padding: calc(3 * var(--s)) calc(10 * var(--s)) 0;
+  object-fit: contain;
+  object-position: top left;
+}
+
+.shop-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
   border: 0;
-  border-radius: 0;
-  outline: 0;
-  color: #fff;
-  background: transparent;
+}
+
+.shop-sizes legend {
+  float: left;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 0;
+  color: rgb(13 13 13 / 60%);
   font-family: Inconsolata, ui-monospace, monospace;
-  font-size: clamp(16px, 1.3vw, 20px);
+  font-size: 15px;
   font-weight: 600;
-  line-height: 1;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.shop-sizes label {
+  position: relative;
+  cursor: pointer;
+}
+
+.shop-sizes input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.shop-sizes span {
+  display: grid;
+  min-width: 44px;
+  height: 40px;
+  box-sizing: border-box;
+  place-items: center;
+  padding: 0 8px;
+  border: 1px solid #0d0d0d;
+  font-family: Inconsolata, ui-monospace, monospace;
+  font-size: 16px;
+  font-weight: 600;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease;
+}
+
+.shop-sizes label:hover span {
+  background: rgb(13 13 13 / 8%);
+}
+
+.shop-sizes input:checked + span {
+  color: #fffdf7;
+  background: #0d0d0d;
+}
+
+.shop-sizes input:focus-visible + span {
+  outline: 3px solid #0d0d0d;
+  outline-offset: 2px;
+}
+
+.shop-detail__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  /* pinned to the bottom of the shared cell */
+  margin-top: auto;
+}
+
+.shop-detail__add {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid #0d0d0d;
+  color: #0d0d0d;
+  background: #fcd202;
+  cursor: pointer;
+  font-family: Inconsolata, ui-monospace, monospace;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  transition: background-color 120ms ease;
+}
+
+.shop-detail__add:hover {
+  background: #ffe14d;
+}
+
+.shop-detail__add.is-added {
+  background: transparent;
+}
+
+.shop-detail__add.is-added:hover {
+  background: rgb(13 13 13 / 8%);
+}
+
+.shop-detail__add:focus-visible {
+  outline: 3px solid #0d0d0d;
+  outline-offset: 2px;
+}
+
+.shop-detail__error {
+  min-height: 1.2em;
+  margin: 0;
+  color: #c4122f;
+  font-family: Inconsolata, ui-monospace, monospace;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* .ph-dither-btn too: dither-button.css loads after this file and would win a tie */
+.ph-dither-btn.home__preorder {
+  /* black at rest, dithers to Purdue Hackers yellow on hover */
+  --btn-bg: #000;
+  --pixel: #000;
+  --pixel-hover: #fcd202;
+  --label: #fbf7ec;
+  --label-hover: #000;
+  width: 100%;
+  min-height: 55px;
   box-sizing: border-box;
 }
 
-.notify-form__submit {
-  display: block;
-  width: 96px;
-  height: calc(36 * var(--s));
-  min-height: 36px;
-  margin: 8px auto 0;
-  padding: 0 12px;
-  border: 0;
-  color: #fff;
-  background: #000;
-  font: 600 clamp(16px, 1.3vw, 20px)/1 Inconsolata, ui-monospace, monospace;
-  cursor: pointer;
+.home__preorder:focus-visible {
+  outline: 3px solid #0d0d0d;
+  outline-offset: 3px;
 }
 
-.notify-form__submit:hover:not(:disabled) {
-  color: #000;
-  background: #fff;
+/* desktop: once you reach the shop it fills the screen, and the page ends there. Spacing is
+   tightened and the pile is capped by the viewport height so everything fits in one screen. */
+@media (min-width: 861px) {
+  .home__shop {
+    --pad-y: clamp(20px, 4svh, 48px);
+    min-height: 100svh;
+    padding-block: var(--pad-y);
+  }
+
+  .pile {
+    width: min(100%, (100svh - 2 * var(--pad-y)) / 0.88);
+    justify-self: center;
+  }
+
+  .shop-info {
+    gap: 16px;
+  }
+
+  .shop-list__row {
+    min-height: 44px;
+    padding-block: 8px;
+  }
 }
 
-.notify-form__submit:disabled {
-  cursor: wait;
-  opacity: 0.5;
+/* shorter desktop windows: tighter still, so the shop keeps fitting in one screen */
+@media (min-width: 861px) and (max-height: 880px) {
+  .home__shop {
+    --pad-y: clamp(14px, 2.5svh, 24px);
+  }
+
+  .shop-info {
+    gap: 12px;
+  }
+
+  .shop-list__row {
+    min-height: 40px;
+    padding-block: 6px;
+  }
+
+  .shop-cart-toggle {
+    min-height: 40px;
+  }
+
+  .shop-detail__item {
+    gap: 8px;
+  }
+
+  .shop-detail__sizing {
+    gap: 6px;
+  }
+
+  .shop-detail .size-chart {
+    width: min(100%, 360px);
+  }
+
+  .shop-sizes legend {
+    margin-bottom: 4px;
+  }
+
+  .shop-sizes span {
+    height: 36px;
+  }
+
+  .shop-detail__actions {
+    gap: 4px;
+  }
 }
 
-.notify-form__submit:focus-visible {
-  outline: 3px solid #fff;
-  outline-offset: -3px;
+/* ---------- the shop's pieces fade up in turn as it scrolls into view (scroll.ts) ---------- */
+/* filter: opacity() and translate, not opacity and transform, so this stacks with the pieces'
+   own rules (dimmed pile items, the disabled checkout button) instead of overriding them */
+.home__shop.can-reveal [data-reveal] {
+  filter: opacity(0);
+  translate: 0 14px;
 }
 
-.notify-form input::placeholder {
-  color: #888;
-  opacity: 1;
-  transition: opacity 120ms ease;
+.home__shop.can-reveal.is-revealed [data-reveal] {
+  filter: none;
+  translate: none;
+  transition:
+    filter 500ms var(--ease),
+    translate 600ms var(--ease);
+  transition-delay: calc(var(--reveal, 0) * 55ms);
 }
 
-.notify-form input:focus::placeholder {
-  opacity: 0;
+/* ---------- keychain: the other creatura designs ---------- */
+
+.shop-variants {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
 }
 
-.notify-form input:focus-visible:not([data-pointer-focus]) {
-  outline: calc(3 * var(--s)) solid #fff;
-  outline-offset: calc(-3 * var(--s));
+.shop-variants figcaption {
+  color: rgb(13 13 13 / 60%);
+  font-family: Inconsolata, ui-monospace, monospace;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
 }
 
-.shape,
-.product {
-  z-index: 2;
-  pointer-events: none;
-}
-
-.product {
-  z-index: 3;
+.shop-variants__list {
+  display: flex;
+  gap: 12px;
+  margin: 0;
   padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  pointer-events: none;
+  list-style: none;
 }
 
-.product__art {
-  pointer-events: none;
+.shop-variants__list li {
+  display: grid;
+  width: 104px;
+  height: 80px;
+  box-sizing: border-box;
+  place-items: center;
+  padding: 8px;
+  border: 1px solid rgb(13 13 13 / 20%);
 }
 
-.shape img {
+/* the SVGs keep their own width/height attributes; this only fits them in the tile */
+.shop-variants__list img {
   display: block;
-  max-width: none;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 100%;
 }
 
-.shape--red {
-  top: calc(380 * var(--s));
-  left: calc(-109 * var(--s));
-  width: calc(289 * var(--s));
-  height: calc(289 * var(--s));
+.shop-variants__note {
+  margin: 0;
+  font-family: Inconsolata, ui-monospace, monospace;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-wrap: pretty;
 }
 
-.shape--sun {
-  top: calc(339 * var(--s));
-  left: calc(148 * var(--s));
-  display: flex;
-  width: calc(259.659 * var(--s));
-  height: calc(259.659 * var(--s));
-  align-items: center;
-  justify-content: center;
+/* ---------- general note under the main button ---------- */
+
+.shop-note {
+  margin: -6px 0 0;
+  color: rgb(13 13 13 / 60%);
+  font-family: Inconsolata, ui-monospace, monospace;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-wrap: pretty;
 }
 
-.shape--sun img {
-  width: calc(199.984 * var(--s));
-  height: calc(199.984 * var(--s));
-  transform: rotate(21.65deg);
+@media (max-width: 860px) {
+  .home__shop {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pile {
+    width: min(100%, 620px);
+    margin-inline: auto;
+  }
 }
 
-.shape--blue {
-  top: calc(449 * var(--s));
-  left: calc(180 * var(--s));
-  display: flex;
-  width: calc(323.786 * var(--s));
-  height: calc(248.855 * var(--s));
-  align-items: center;
-  justify-content: center;
-}
-
-.shape--blue img {
-  width: calc(290 * var(--s));
-  height: calc(145 * var(--s));
-  transform: rotate(156.43deg);
-}
-
-.shape--yellow {
-  top: calc(1202.96 * var(--s));
-  left: calc(157.92 * var(--s));
-  display: flex;
-  width: calc(357.281 * var(--s));
-  height: calc(357.281 * var(--s));
-  align-items: center;
-  justify-content: center;
-}
-
-.shape--yellow span {
-  display: block;
-  width: calc(258.582 * var(--s));
-  height: calc(258.582 * var(--s));
-  border-radius: calc(23.194 * var(--s));
-  background: #ffe100;
-  transform: rotate(-32.69deg);
-}
-
-.shape--red-large {
-  top: calc(1197.77 * var(--s));
-  left: calc(954.46 * var(--s));
-  width: calc(348.778 * var(--s));
-  height: calc(348.778 * var(--s));
-}
-
-.product__art {
-  position: absolute;
-  background: #0d0d0d;
-  transition: transform 180ms ease;
-  mask-repeat: no-repeat;
-  mask-mode: alpha;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-mode: alpha;
-}
-
-.product__design {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  pointer-events: none;
-  transition: transform 180ms ease;
-}
-
-.product--ready .product__art {
-  display: none;
-}
-
-.product-question {
-  position: absolute;
-  color: #fffdf7;
-  font-family: pixel, monospace;
-  font-size: calc(96 * var(--s));
-  font-weight: 400;
-  line-height: 1;
-  pointer-events: none;
-}
-
-.product:hover .product__art,
-.product:focus-visible .product__art,
-.product:hover .product__design,
-.product:focus-visible .product__design {
-  transform: rotate(var(--hover-rotation));
-}
-
-.product:focus-visible {
-  outline: calc(3 * var(--s)) solid #000;
-  outline-offset: calc(5 * var(--s));
-}
-
-.product--other,
-.product--shirt,
-.product--keychain,
-.product--bag,
-.product--cap {
-  position: absolute;
-  pointer-events: auto;
-}
-.product--other {
-  --hover-rotation: -3deg;
-  top: calc(1202.44 * var(--s));
-  left: calc(171.57 * var(--s));
-  width: calc(272.833 * var(--s));
-  height: calc(372.101 * var(--s));
-}
-.product--shirt {
-  --hover-rotation: 3deg;
-  top: calc(1158.04 * var(--s));
-  left: calc(930.57 * var(--s));
-  width: calc(444.16 * var(--s));
-  height: calc(426.441 * var(--s));
-}
-.product--keychain {
-  --hover-rotation: -3deg;
-  top: calc(1444.27 * var(--s));
-  left: calc(613.86 * var(--s));
-  width: calc(292.407 * var(--s));
-  height: calc(522.401 * var(--s));
-}
-.product--bag {
-  --hover-rotation: 3deg;
-  top: calc(1693.05 * var(--s));
-  left: calc(266.33 * var(--s));
-  width: calc(489.181 * var(--s));
-  height: calc(469.665 * var(--s));
-}
-.product--cap {
-  --hover-rotation: -3deg;
-  top: calc(1400 * var(--s) - 120.045 * var(--s));
-  left: calc(756 * var(--s) - 161.632 * var(--s));
-  width: calc(323.264 * var(--s));
-  height: calc(240.089 * var(--s));
-}
-
-.orbit-item {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.product--other .product__art {
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  mask-image: url("../assets/mask-other.svg");
-  mask-size: calc(398.812 * var(--s)) calc(387.051 * var(--s));
-  mask-position: calc(-34.413 * var(--s)) calc(18.805 * var(--s));
-  -webkit-mask-image: url("../assets/mask-other.svg");
-  -webkit-mask-size: calc(398.812 * var(--s)) calc(387.051 * var(--s));
-  -webkit-mask-position: calc(-34.413 * var(--s)) calc(18.805 * var(--s));
-}
-
-.product--keychain .product__art {
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  mask-image: url("../assets/mask-keychain.webp");
-  mask-size: calc(420.623 * var(--s)) calc(490.043 * var(--s));
-  mask-position: calc(-37.12 * var(--s)) calc(-38.64 * var(--s));
-  -webkit-mask-image: url("../assets/mask-keychain.webp");
-  -webkit-mask-size: calc(420.623 * var(--s)) calc(490.043 * var(--s));
-  -webkit-mask-position: calc(-37.12 * var(--s)) calc(-38.64 * var(--s));
-}
-
-.product--bag .product__art {
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  mask-image: url("../assets/mask-bag.webp");
-  mask-size: calc(432.697 * var(--s)) calc(432.697 * var(--s));
-  mask-position: calc(-80.519 * var(--s)) calc(6.289 * var(--s));
-  -webkit-mask-image: url("../assets/mask-bag.webp");
-  -webkit-mask-size: calc(432.697 * var(--s)) calc(432.697 * var(--s));
-  -webkit-mask-position: calc(-80.519 * var(--s)) calc(6.289 * var(--s));
-}
-
-.shape--keychain-ring {
-  top: calc(1460.48 * var(--s));
-  left: calc(565.49 * var(--s));
-  display: flex;
-  width: calc(425.984 * var(--s));
-  height: calc(443.647 * var(--s));
-  align-items: center;
-  justify-content: center;
-}
-
-.shape--keychain-ring > div {
-  width: calc(410.708 * var(--s));
-  height: calc(205.354 * var(--s));
-  transform: rotate(-131.51deg);
-}
-
-.shape--keychain-ring img {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.shape--green {
-  top: calc(1686.17 * var(--s));
-  left: calc(65.01 * var(--s));
-  display: flex;
-  width: calc(674.307 * var(--s));
-  height: calc(674.307 * var(--s));
-  align-items: center;
-  justify-content: center;
-}
-
-.shape--green > div {
-  position: relative;
-  width: calc(498.981 * var(--s));
-  height: calc(498.981 * var(--s));
-  transform: rotate(27.85deg);
-}
-
-.shape--green img {
-  position: absolute;
-  top: 0;
-  left: 6.7%;
-  width: 86.6%;
-  height: 75%;
-}
-
-.shape--purple {
-  top: calc(1754.82 * var(--s));
-  left: calc(841.34 * var(--s));
-  display: flex;
-  width: calc(605.656 * var(--s));
-  height: calc(605.656 * var(--s));
-  align-items: center;
-  justify-content: center;
-}
-
-.shape--purple > div {
-  position: relative;
-  width: calc(459.489 * var(--s));
-  height: calc(459.489 * var(--s));
-  transform: rotate(-23.76deg);
-}
-
-.shape--purple img {
-  position: absolute;
-  top: 5.92%;
-  left: 7.73%;
-  width: 84.54%;
-  height: 81.08%;
-}
-
-/* Two static products flank the RSVP form; no carousel animation on the landing page. */
-.cutout-group {
-  transform: none;
-}
-
-.orbit-item {
-  position: absolute;
-  inset: auto;
-  pointer-events: none;
-  transform: scale(1.15);
-  transform-origin: top left;
-}
-
-.orbit-item > .shape,
-.orbit-item > .product {
-  top: 0;
-  left: 0;
-  transform: none;
-}
-
-.orbit-item--shirt {
-  top: calc(1150 * var(--s));
-  left: calc(1000 * var(--s));
-  transform: scale(1.21);
-}
-
-.orbit-item--cap {
-  top: calc(1160 * var(--s));
-  left: calc(0 * var(--s));
-  transform: scale(1.13);
-}
-
-.product--image {
-  width: calc(100%);
-  height: 100%;
-  overflow: visible;
-}
-
-.product--shirt {
-  width: calc(420 * var(--s));
-  height: calc(467 * var(--s));
-}
-
-.product--cap {
-  width: calc(500 * var(--s));
-  height: calc(479 * var(--s));
-}
-
-.product-image {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  pointer-events: none;
-}
-
-/* The hat PNG has more transparent margin than the shirt PNG; scale its visible star optically. */
-.product--cap .product-image {
-  transform: scale(1.25);
+@media (prefers-reduced-motion: reduce) {
+  .pile__item,
+  .home__shop[data-active] .pile__item.is-active,
+  .shop-list__row {
+    transition: none;
+  }
 }
 
 @media (max-width: 720px) {
@@ -706,63 +700,23 @@
 }
 
 @media (max-width: 640px) {
-  .home {
-    --mobile-merch-gap: 15svh;
-    --mobile-merch-section: max(100svh, 760px);
-    --mobile-merch-center: max(0px, calc(50svh - 380px));
-  }
-
   .home__stage {
-    height: calc(100svh + var(--mobile-merch-gap) + var(--mobile-merch-section));
+    height: 100svh;
   }
 
-  .items-background {
-    top: 100svh;
+  .home__intro {
+    top: 20px;
+    left: 20px;
+    gap: 14px;
   }
 
-  .lower-art {
-    top: calc(100svh + var(--mobile-merch-gap) + var(--mobile-merch-center));
-    bottom: auto;
-    height: 760px;
-    overflow: hidden;
-    translate: none;
-  }
-
-  .notify-form {
-    translate: none;
-  }
-
-  .orbit-item {
-    width: 100%;
-    left: 0;
-    transform: none;
-  }
-
-  .orbit-item--cap {
-    top: 0;
-  }
-
-  .orbit-item--shirt {
-    top: 480px;
-  }
-
-  .orbit-item--cap > .product,
-  .orbit-item--shirt > .product {
-    left: 50%;
-    transform-origin: top center;
-  }
-
-  .orbit-item--cap > .product {
-    transform: translateX(-50%) scale(2.15);
-  }
-
-  .orbit-item--shirt > .product {
-    transform: translateX(-50%) scale(2.05);
+  .home__shop-link {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 20px;
   }
 
   .home__descriptor {
-    top: 20px;
-    left: 20px;
     width: min(55vw, 220px);
     font-size: clamp(18px, 5vw, 28px);
   }
@@ -773,65 +727,6 @@
     width: 88px;
     height: 32px;
     font-size: 20px;
-  }
-
-  .notify-form {
-    top: calc(100svh + var(--mobile-merch-gap) + var(--mobile-merch-center) + 320px);
-    right: 16px;
-    bottom: auto;
-    left: 16px;
-    width: auto;
-    min-height: 56px;
-    transform: none;
-  }
-
-  .orbit-item--shirt > .product {
-    transform: translateX(-50%) scale(2.15);
-  }
-
-  .notify-form__prompt {
-    height: auto;
-    margin-bottom: 8px;
-    font-size: clamp(20px, 5.5vw, 26px);
-    line-height: 1.05;
-    white-space: normal;
-  }
-
-  .notify-form__field {
-    height: 44px;
-  }
-
-  .notify-form__submit {
-    height: 44px;
-    min-height: 44px;
-    font-size: 20px;
-  }
-
-  .notify-form input {
-    padding-inline: 14px;
-    font-size: 20px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .notify-form__success.is-visible span,
-  .notify-form__status.is-visible {
-    animation: none;
-    opacity: 1;
-    filter: none;
-    transform: none;
-  }
-
-  .product__art,
-  .product__design {
-    transition: none;
-  }
-
-  .product:hover .product__art,
-  .product:focus-visible .product__art,
-  .product:hover .product__design,
-  .product:focus-visible .product__design {
-    transform: none;
   }
 }
 

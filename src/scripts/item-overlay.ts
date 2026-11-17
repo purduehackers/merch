@@ -1,11 +1,12 @@
-let activeDialog: HTMLDialogElement | null = null;
+// Behaviour for src/components/ItemOverlay.astro: open from [data-overlay-open="<id>"],
+// animated close (Esc, backdrop, [data-overlay-close]), and the photo carousel.
+const wired = new WeakSet<HTMLDialogElement>();
 
-function initHoodieOverlay() {
-  const dialog = document.querySelector<HTMLDialogElement>('#hoodie-overlay');
-  const trigger = document.querySelector<HTMLButtonElement>('[data-open-hoodie]');
-  if (!dialog || !trigger || dialog === activeDialog) return;
-  activeDialog = dialog;
+function initOverlay(dialog: HTMLDialogElement) {
+  if (wired.has(dialog)) return;
+  wired.add(dialog);
 
+  const triggers = Array.from(document.querySelectorAll<HTMLElement>(`[data-overlay-open="${dialog.id}"]`));
   const currentImage = dialog.querySelector<HTMLImageElement>('[data-carousel-current]');
   const thumbnails = Array.from(dialog.querySelectorAll<HTMLElement>('[data-carousel-thumb]'));
   const carouselMain = dialog.querySelector<HTMLElement>('.hoodie-carousel__main');
@@ -15,8 +16,14 @@ function initHoodieOverlay() {
   const transitionDuration = prefersReducedMotion ? 0 : 120;
   let closeTimer: number | undefined;
   let currentIndex = 0;
+  let opener: HTMLElement | null = null;
 
-  trigger.addEventListener('click', () => dialog.showModal());
+  triggers.forEach((trigger) =>
+    trigger.addEventListener('click', () => {
+      opener = trigger;
+      dialog.showModal();
+    }),
+  );
 
   function closeDialog() {
     if (!dialog.open || dialog.classList.contains('is-closing')) return;
@@ -33,7 +40,7 @@ function initHoodieOverlay() {
     if (closeTimer) window.clearTimeout(closeTimer);
     closeTimer = undefined;
     dialog.classList.remove('is-closing');
-    trigger.focus();
+    (opener ?? triggers[0])?.focus();
   });
 
   dialog.addEventListener('cancel', (event) => {
@@ -42,7 +49,7 @@ function initHoodieOverlay() {
   });
 
   dialog.addEventListener('click', (event) => {
-    if (event.target === dialog) closeDialog();
+    if (event.target === dialog || (event.target as Element).closest('[data-overlay-close]')) closeDialog();
   });
 
   function showSlide(index: number) {
@@ -66,6 +73,7 @@ function initHoodieOverlay() {
   let suppressClick = false;
 
   carouselMain?.addEventListener('pointerdown', (event) => {
+    if (thumbnails.length < 2) return;
     if (event.pointerType === 'mouse' || (event.target as Element).closest('.hoodie-carousel__prev, .hoodie-carousel__next')) return;
     swipeStartX = event.clientX;
     swipeStartY = event.clientY;
@@ -99,9 +107,11 @@ function initHoodieOverlay() {
   document.addEventListener('astro:before-swap', () => {
     if (closeTimer) window.clearTimeout(closeTimer);
     if (dialog.open) dialog.close();
-    if (activeDialog === dialog) activeDialog = null;
+    wired.delete(dialog);
   }, { once: true });
 }
 
-document.addEventListener('astro:page-load', initHoodieOverlay);
-initHoodieOverlay();
+const initOverlays = () => document.querySelectorAll<HTMLDialogElement>('dialog.hoodie-overlay').forEach(initOverlay);
+
+document.addEventListener('astro:page-load', initOverlays);
+initOverlays();

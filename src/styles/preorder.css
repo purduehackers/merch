@@ -145,6 +145,8 @@ body {
   flex: 1;
   flex-direction: column;
   width: 100%;
+  /* lets the cart list shrink and scroll instead of overflowing the panel */
+  min-height: 0;
   margin-top: calc(34.5 * var(--s));
   padding: 0 var(--gutter);
 }
@@ -273,28 +275,113 @@ body {
   white-space: nowrap;
 }
 
-/* summary + total are pushed to the bottom; new rows grow upward so the total never moves */
+/* summary + total are pushed to the bottom; new rows grow upward so the total never moves.
+   A long cart scrolls inside the panel instead of pushing the total off screen. */
 .preorder__summary {
   display: grid;
-  margin-top: auto;
-  padding-bottom: calc(8.5 * var(--s));
+  min-height: 0;
+  margin: auto 0 0;
+  padding: 0 0 calc(8.5 * var(--s));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   color: #fff;
   font-size: calc(20 * var(--s));
-  line-height: calc(36.64 * var(--s));
+  list-style: none;
+  outline: none;
 }
 
-.preorder__summary > div,
 .preorder__total {
   display: flex;
   justify-content: space-between;
-}
-
-.preorder__total {
   box-sizing: border-box;
   padding-top: calc(14 * var(--s));
   border-top: calc(1 * var(--s)) solid rgb(255 255 255 / 60%);
   font-size: calc(24 * var(--s));
   font-weight: 600;
+  line-height: calc(36.64 * var(--s));
+}
+
+/* the lab pages' summary rows: name … price */
+.preorder__summary > div {
+  display: flex;
+  justify-content: space-between;
+  line-height: calc(36.64 * var(--s));
+}
+
+/* cart lines (cart.css), at this page's scale and in its fonts */
+.preorder__summary .cart-line {
+  grid-template-columns: calc(52 * var(--s)) minmax(0, 1fr) auto calc(80 * var(--s)) calc(36 * var(--s));
+  gap: calc(14 * var(--s));
+  padding: calc(8 * var(--s)) 0;
+  border-top-color: rgb(255 255 255 / 18%);
+}
+
+.preorder__summary .cart-line:first-child {
+  border-top: 0;
+}
+
+.preorder__summary .cart-line__thumb {
+  width: calc(52 * var(--s));
+  height: calc(52 * var(--s));
+  padding: calc(4 * var(--s));
+}
+
+.preorder__summary .cart-line__name {
+  font-family: inherit;
+  font-size: calc(20 * var(--s));
+}
+
+.preorder__summary .cart-line__remove {
+  width: calc(36 * var(--s));
+  height: calc(36 * var(--s));
+}
+
+.preorder__summary .cart-line__remove svg {
+  width: calc(20 * var(--s));
+  height: calc(20 * var(--s));
+}
+
+.preorder__summary .cart-line__meta {
+  font-family: inherit;
+  font-size: calc(15 * var(--s));
+  font-weight: 400;
+}
+
+.preorder__summary .qty {
+  grid-template-columns: calc(34 * var(--s)) 2.5ch calc(34 * var(--s));
+  height: calc(34 * var(--s));
+  font-family: inherit;
+  font-weight: 400;
+}
+
+.preorder__summary .qty__step {
+  font-size: calc(18 * var(--s));
+}
+
+.preorder__summary .qty__value,
+.preorder__summary .cart-line__price {
+  font-family: inherit;
+  font-size: calc(18 * var(--s));
+  font-weight: 400;
+}
+
+.preorder__empty {
+  margin: auto 0 calc(16 * var(--s));
+  color: rgb(255 255 255 / 60%);
+  font-size: calc(20 * var(--s));
+}
+
+.preorder__empty a {
+  color: #fff;
+}
+
+.preorder__empty[hidden] {
+  display: none;
+}
+
+/* with the empty note showing it takes the push to the bottom instead */
+.preorder__empty:not([hidden]) + .preorder__summary {
+  margin-top: 0;
 }
 
 .preorder__form[hidden],
@@ -336,6 +423,14 @@ body {
   cursor: pointer;
 }
 
+/* the form's own back: a link to the shop, at the top of the column */
+.preorder__back--shop {
+  align-self: flex-start;
+  display: inline-block;
+  margin-bottom: calc(28 * var(--s));
+  text-decoration: none;
+}
+
 .preorder__back:hover {
   color: #fff;
 }
@@ -369,7 +464,12 @@ body {
   cursor: pointer;
 }
 
-.preorder__next:hover {
+.preorder__next:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.preorder__next:not(:disabled):hover {
   color: #fff;
   background: #333;
 }

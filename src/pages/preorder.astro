@@ -1,11 +1,11 @@
 ---
 import "../styles/preorder.css";
+import "../styles/cart.css";
 import Layout from "../components/layout.astro";
 import PriceData from "../components/PriceData.astro";
 import { getPriceAmounts } from "../scripts/stripe-prices";
 
 const prices = await getPriceAmounts();
-const label = (id: string) => (prices[id] != null ? `${id}, $${prices[id]}` : id);
 ---
 
 <Layout>
@@ -62,6 +62,7 @@ const label = (id: string) => (prices[id] != null ? `${id}, $${prices[id]}` : id
                 <a href="mailto:phackers@purdue.edu">phackers@purdue.edu</a>.
             </p>
             <form class="preorder__form" action="/api/preorder" method="post">
+                <a class="preorder__back preorder__back--shop" href="/#shop">&larr; back to the shop</a>
                 <div class="preorder__contact">
                     <label>
                         <span>name</span>
@@ -84,46 +85,11 @@ const label = (id: string) => (prices[id] != null ? `${id}, $${prices[id]}` : id
                         />
                     </label>
                 </div>
-                <fieldset class="preorder__items">
-                    <legend>your cart</legend>
-                    <label class="preorder__item">
-                        <input type="checkbox" name="items" value="shirt" />
-                        <img
-                            data-node-id="12:255"
-                            src="/preorder/figma-shirt.png"
-                            alt=""
-                        />
-                        <span class="preorder__item-name">{label("shirt")}</span>
-                    </label>
-                    <label class="preorder__item">
-                        <input type="checkbox" name="items" value="tote" />
-                        <img
-                            data-node-id="12:261"
-                            src="/preorder/figma-tote.png"
-                            alt=""
-                        />
-                        <span class="preorder__item-name">{label("tote")}</span>
-                    </label>
-                    <label class="preorder__item">
-                        <input type="checkbox" name="items" value="socks" />
-                        <img
-                            data-node-id="12:270"
-                            src="/preorder/figma-socks.png"
-                            alt=""
-                        />
-                        <span class="preorder__item-name">{label("socks")}</span>
-                    </label>
-                    <label class="preorder__item">
-                        <input type="checkbox" name="items" value="keychain" />
-                        <img
-                            data-node-id="12:300"
-                            src="/preorder/figma-keychain.png"
-                            alt=""
-                        />
-                        <span class="preorder__item-name">{label("keychain")}</span>
-                    </label>
-                </fieldset>
-                <div class="preorder__summary" role="status"></div>
+                <!-- filled from the cart (see scripts/preorder.ts); items are picked on the homepage -->
+                <p class="preorder__empty" data-cart-empty hidden>
+                    your cart is empty. <a href="/#shop">pick something on the homepage</a>.
+                </p>
+                <ul class="preorder__summary" aria-label="your cart" tabindex="-1" data-cart-lines data-cart-focus></ul>
                 <div class="preorder__total">
                     <span>total</span>
                     <output data-preorder-total>0.00</output>

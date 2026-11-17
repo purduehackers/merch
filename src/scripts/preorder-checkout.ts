@@ -1,6 +1,8 @@
 // Stripe embedded payment form for /preorder.
 // Stripe.js is loaded from js.stripe.com in layout.astro (never bundled — PCI requirement).
 
+import { clearCart, readCart } from "./cart";
+
 type CheckoutForm = {
   mount: (selector: string) => void;
   unmount?: () => void;
@@ -103,17 +105,39 @@ const initCheckout = () => {
 
   back?.addEventListener("click", showForm);
 
+  // one checkout start at a time: a double click on "next" used to create two Stripe
+  // sessions and mount two payment forms
+  let starting = false;
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (starting) return;
+    starting = true;
+    form.setAttribute("aria-busy", "true");
+    try {
+      await startCheckout();
+    } finally {
+      starting = false;
+      form.removeAttribute("aria-busy");
+    }
+  });
+
+  const startCheckout = async () => {
     if (error) error.textContent = "";
     if (!form.reportValidity()) return;
 
+    // /preorder checks out the cart (with quantities); the lab pages still send one of each
+    // checked item, with sizes, as form fields.
     const data = new FormData(form);
     const items = data.getAll("items").map(String);
-    if (!items.length) {
-      if (error) error.textContent = "select at least one item";
+    const lines = items.length ? [] : readCart().lines;
+    if (!items.length && !lines.length) {
+      if (error) error.textContent = "your cart is empty";
       return;
     }
+    const order = items.length
+      ? { items, shirt_size: data.get("shirt_size"), sock_size: data.get("sock_size") }
+      : { lines };
 
     if (!window.Stripe) {
       fail("checkout isn't available right now");
@@ -127,10 +151,9 @@ const initCheckout = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items,
+          ...order,
+          name: data.get("name"),
           email: data.get("email"),
-          shirt_size: data.get("shirt_size"),
-          sock_size: data.get("sock_size"),
           return_path: location.pathname,
         }),
       });
@@ -169,7 +192,7 @@ const initCheckout = () => {
         console.error("Payment confirmation error:", confirmError);
       }
     });
-  });
+  };
 
   // Back from Stripe's return_url: show the result of the session.
   const sessionId = new URLSearchParams(location.search).get("session_id");
@@ -180,6 +203,7 @@ const initCheckout = () => {
       .then((response) => (response.ok ? response.json() : Promise.reject()))
       .then(({ status }: { status: string }) => {
         if (status === "complete") {
+          clearCart();
           showCheckout("thanks! your preorder is in. a receipt is on its way to your email.");
         } else {
           if (back) back.hidden = false;

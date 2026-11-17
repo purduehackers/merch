@@ -1,0 +1,78 @@
+---
+import { pixelOrder } from "./dither.js";
+import "./dither-button.css";
+
+interface Props {
+  href: string;
+  tone?: "light" | "dark";
+  cols?: number;
+  rows?: number;
+  class?: string;
+  /** any other attributes (data-*, aria-*) go on the <a> */
+  [attribute: string]: unknown;
+}
+
+const { href, tone, cols = 10, rows = 5, class: className, ...attrs } = Astro.props;
+const pixels = pixelOrder(cols * rows);
+---
+
+<a
+  href={href}
+  data-tone={tone}
+  class:list={["ph-dither-btn", className]}
+  style={`--cols: ${cols}; --rows: ${rows}; --count: ${cols * rows}`}
+  data-cols={cols}
+  data-rows={rows}
+  {...attrs}
+>
+  <span class="ph-dither-btn__pixels" aria-hidden="true">
+    {pixels.map((i) => <span class="ph-dither-btn__pixel" style={`--i: ${i}`} />)}
+  </span>
+  <span class="ph-dither-btn__label"><slot /></span>
+</a>
+
+<script>
+  import { spreadFrom } from "./dither-spread";
+
+  // The fill spreads out from where the pointer comes in, and drains back toward where it
+  // leaves; keyboard focus fills from the middle. Each time, the cell delays are set first and
+  // only then is the button lit, so the transition uses the new delays. Delegated on document,
+  // so it covers buttons on pages ClientRouter swaps in later.
+  const button = (target: EventTarget | null) =>
+    target instanceof Element ? target.closest<HTMLElement>(".ph-dither-btn") : null;
+  const centre = (btn: HTMLElement) => {
+    const box = btn.getBoundingClientRect();
+    return [box.left + box.width / 2, box.top + box.height / 2] as const;
+  };
+  const light = (btn: HTMLElement, on: boolean, x: number, y: number) => {
+    if (on && btn.getAttribute("aria-disabled") === "true") return;
+    if (btn.classList.contains("is-lit") === on) return;
+    spreadFrom(btn, x, y);
+    btn.classList.toggle("is-lit", on);
+  };
+
+  document.addEventListener("pointerover", (event) => {
+    const btn = button(event.target);
+    if (event.pointerType !== "mouse" || !btn || btn.contains(event.relatedTarget as Node | null)) return;
+    light(btn, true, event.clientX, event.clientY);
+  });
+  document.addEventListener("pointerout", (event) => {
+    const btn = button(event.target);
+    if (!btn || btn.contains(event.relatedTarget as Node | null)) return;
+    // keyboard focus keeps it lit
+    if (btn.matches(":focus-visible")) return;
+    light(btn, false, event.clientX, event.clientY);
+  });
+  document.addEventListener("focusin", (event) => {
+    const btn = button(event.target);
+    if (btn?.matches(":focus-visible")) light(btn, true, ...centre(btn));
+  });
+  document.addEventListener("focusout", (event) => {
+    const btn = button(event.target);
+    if (btn && !btn.matches(":hover")) light(btn, false, ...centre(btn));
+  });
+  // don't carry a lit state over into the next page's buttons
+  document.addEventListener("astro:before-swap", () => {
+    document.querySelectorAll(".ph-dither-btn.is-lit").forEach((btn) => btn.classList.remove("is-lit"));
+  });
+</script>

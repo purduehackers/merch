@@ -1,13 +1,13 @@
 @font-face {
   font-family: "PolySans Relax";
-  src: url("/fonts/PolySans-Relax.woff2") format("woff2");
+  src: url("https://f3ibyzhjurhjiwis.public.blob.vercel-storage.com/PolySans-Relax.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "PolySans Inky";
-  src: url("/fonts/PolySans-Inky.woff2") format("woff2");
+  src: url("https://f3ibyzhjurhjiwis.public.blob.vercel-storage.com/PolySans-Inky.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
   font-display: swap;

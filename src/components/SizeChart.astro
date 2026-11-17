@@ -1,0 +1,90 @@
+---
+// The f2026-drop size charts from Figma (shirt 447:2, socks 416:61). The image carries the
+// visuals; the table under it gives screen readers the same numbers.
+import { SHIRT_CHART, SHIRT_SIZES, SOCK_CHART, SOCK_SIZES } from "../scripts/preorder-lab/body";
+
+interface Props {
+    kind: "shirt" | "socks";
+}
+const { kind } = Astro.props;
+---
+
+<div class="size-chart">
+    {kind === "shirt" ? (
+        <>
+            <img
+                data-node-id="447:2"
+                src="/preorder/size-charts/shirt.png"
+                width="843"
+                height="304"
+                alt=""
+                loading="lazy"
+                decoding="async"
+            />
+            <table class="sr-only">
+                <caption>shirt size chart, inches, laid flat</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">size</th>
+                        <th scope="col">front chest</th>
+                        <th scope="col">length</th>
+                        <th scope="col">sleeve</th>
+                        <th scope="col">shoulder</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {SHIRT_SIZES.map((size) => {
+                        const s = SHIRT_CHART[size];
+                        return (
+                            <tr>
+                                <th scope="row">{size}</th>
+                                <td>{s.frontChest.toFixed(1)}</td>
+                                <td>{s.length.toFixed(1)}</td>
+                                <td>{s.sleeve.toFixed(1)}</td>
+                                <td>{s.shoulder.toFixed(1)}</td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </>
+    ) : (
+        <>
+            <img
+                data-node-id="416:61"
+                src="/preorder/size-charts/socks.png"
+                width="667"
+                height="223"
+                alt=""
+                loading="lazy"
+                decoding="async"
+            />
+            <table class="sr-only">
+                <caption>sock size chart by shoe size</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">sock size</th>
+                        <th scope="col">US</th>
+                        <th scope="col">Australia</th>
+                        <th scope="col">Euro</th>
+                        <th scope="col">UK</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {SOCK_SIZES.map((size) => {
+                        const s = SOCK_CHART[size].shoe;
+                        return (
+                            <tr>
+                                <th scope="row">{size}</th>
+                                <td>{s.us}</td>
+                                <td>{s.au}</td>
+                                <td>{s.eu}</td>
+                                <td>{s.uk}</td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </>
+    )}
+</div>

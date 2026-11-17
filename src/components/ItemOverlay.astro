@@ -1,0 +1,83 @@
+---
+// Archive-style popup: blurred shapes, description column, big title, photo carousel.
+// Open it with any button that has data-overlay-open="<id>" (see src/scripts/item-overlay.ts).
+// Default slot = description text; slot "extra" = anything under it (size chart, actions).
+import archiveRed from "../assets/archive-red.svg?url";
+import archiveUnion from "../assets/archive-union.svg?url";
+import archiveStar from "../assets/archive-star.svg?url";
+import archiveEllipse from "../assets/archive-ellipse.svg?url";
+import "../styles/item-overlay.css";
+
+interface Props {
+  id: string;
+  /** title lines, stacked */
+  title: string[];
+  season?: string;
+  images: { src: string; alt: string }[];
+  /** heading level for the title */
+  as?: "h1" | "h2";
+  /** what the photos are of, for the carousel's label ("hoodie" -> "Hoodie photos") */
+  subject: string;
+  /** show a visible close button (backdrop click and Esc always close) */
+  closable?: boolean;
+  class?: string;
+}
+
+const { id, title, season, images, as: Heading = "h2", subject, closable = false, class: className } = Astro.props;
+const capitalized = subject.charAt(0).toUpperCase() + subject.slice(1);
+---
+
+<dialog
+  class:list={["hoodie-overlay", className]}
+  id={id}
+  aria-labelledby={`${id}-title`}
+  aria-describedby={`${id}-description`}
+>
+  <div class="hoodie-overlay__decor" aria-hidden="true">
+    <img class="hoodie-overlay__shape hoodie-overlay__shape--red" src={archiveRed} alt="" />
+    <img class="hoodie-overlay__shape hoodie-overlay__shape--green" src={archiveUnion} alt="" />
+    <img class="hoodie-overlay__shape hoodie-overlay__shape--orange" src={archiveStar} alt="" />
+    <img class="hoodie-overlay__shape hoodie-overlay__shape--blue" src={archiveEllipse} alt="" />
+  </div>
+  <div class="hoodie-overlay__surface" aria-hidden="true"></div>
+  <div class="hoodie-overlay__handle" aria-hidden="true"></div>
+
+  <div class="hoodie-overlay__body">
+    <div class="hoodie-overlay__description" id={`${id}-description`}>
+      <slot />
+    </div>
+    <slot name="extra" />
+  </div>
+  <div class="hoodie-overlay__bottom-copy">
+    {season && <p class="hoodie-overlay__season">{season}</p>}
+    <Heading class="hoodie-overlay__title" id={`${id}-title`}>
+      {title.map((line) => <span>{line}</span>)}
+    </Heading>
+  </div>
+
+  <section class="hoodie-carousel" aria-label={`${capitalized} photos`}>
+    <div class="hoodie-carousel__main">
+      <img data-carousel-current src={images[0].src} alt={images[0].alt} />
+      {images.length > 1 && (
+        <>
+          <div class="hoodie-carousel__dots" aria-hidden="true">
+            {images.map((image, index) => (
+              <span
+                class={`hoodie-carousel__dot${index === 0 ? " is-active" : ""}`}
+                data-carousel-thumb
+                data-image-src={image.src}
+                data-image-alt={image.alt}
+              ></span>
+            ))}
+          </div>
+          <button class="hoodie-carousel__prev" type="button" data-carousel-prev aria-label={`Previous ${subject} photo`}></button>
+          <button class="hoodie-carousel__next" type="button" data-carousel-next aria-label={`Next ${subject} photo`}></button>
+        </>
+      )}
+    </div>
+  </section>
+
+  {closable && (
+    <button class="hoodie-overlay__close" type="button" data-overlay-close autofocus>close</button>
+  )}
+</dialog>

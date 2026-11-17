@@ -1,10 +1,26 @@
 ---
 import "../styles/hero.css";
+import "../styles/cart.css";
+import DitherButton from "./ph/DitherButton.astro";
+import PriceData from "./PriceData.astro";
+import SizeChart from "./SizeChart.astro";
 import concept from "../assets/merch-concept.webp";
-import merchHat from "../assets/merch-hat.png";
-import merchShirt from "../assets/merch-shirt.png";
+import { products } from "../scripts/preorder-items-data";
+import { getPriceAmounts } from "../scripts/stripe-prices";
+import { SHIRT_SIZES, SOCK_SIZES } from "../scripts/preorder-lab/body";
+import cutouts from "../scripts/product-cutouts.json";
 
-const notifyEndpoint = import.meta.env.PUBLIC_NOTIFY_ENDPOINT || "/api/notify";
+// From Stripe; if it can't be reached the page still renders, just without prices.
+const prices = await getPriceAmounts();
+
+// Where each cutout lands in the pile, as % of the pile's width (x, w) and height (y).
+// z is the stacking order; grow is how much it scales up on hover.
+const PILE = {
+    keychain: { x: 22, y: 34, w: 40, r: -13, z: 1, grow: 1.25 },
+    tote: { x: 3, y: 9, w: 40, r: -9, z: 2, grow: 1.2 },
+    shirt: { x: 32, y: 2, w: 55, r: 7, z: 3, grow: 1.15 },
+    socks: { x: 61, y: 40, w: 31, r: 15, z: 4, grow: 1.3 },
+} as const;
 ---
 
 <main class="home" aria-labelledby="page-title">
@@ -13,7 +29,10 @@ const notifyEndpoint = import.meta.env.PUBLIC_NOTIFY_ENDPOINT || "/api/notify";
         <h1 id="page-title" class="sr-only">
             Merch
         </h1>
-        <p class="home__descriptor">for the doers, makers, and dreamers</p>
+        <div class="home__intro">
+            <p class="home__descriptor">for the doers, makers, and dreamers</p>
+            <a class="home__shop-link" href="#shop">shop winter 2026</a>
+        </div>
 
         <a class="home__archive" href="/archive">
             archive
@@ -31,99 +50,274 @@ const notifyEndpoint = import.meta.env.PUBLIC_NOTIFY_ENDPOINT || "/api/notify";
                 />
             </div>
         </div>
-
-        <form class="notify-form" data-endpoint={notifyEndpoint} novalidate>
-            <label class="notify-form__prompt" for="notify-email">
-                <span class="notify-form__prompt-default">
-                    NOTIFY ME WHEN W2026 DROPS
-                </span>
-                <span
-                    class="notify-form__prompt-processing"
-                    data-notify-processing
-                    aria-hidden="true"
-                >
-                    ADDING YOU TO THE LIST…
-                </span>
-                <span
-                    class="notify-form__prompt-error"
-                    data-notify-error
-                    aria-hidden="true"
-                ></span>
-                <span
-                    class="notify-form__success"
-                    data-notify-success
-                    aria-hidden="true"
-                >
-                    <span style="--i: 0">YOU'RE</span>
-                    <span style="--i: 1">ON</span>
-                    <span style="--i: 2">THE</span>
-                    <span style="--i: 3">LIST</span>
-                </span>
-            </label>
-            <div class="notify-form__field">
-                <input
-                    id="notify-email"
-                    name="email"
-                    type="email"
-                    autocomplete="email"
-                    placeholder="purduehackers@gmail.com"
-                    required
-                />
-            </div>
-            <button class="notify-form__submit" type="submit">
-                enter
-            </button>
-            <p
-                class="notify-form__status"
-                data-notify-status
-                aria-live="polite"
-                aria-atomic="true"
-            ></p>
-        </form>
-
-        <div class="items-background" aria-hidden="true"></div>
-        <div class="lower-art">
-            <div class="cutout-group">
-                <div class="orbit-item orbit-item--shirt">
-                    <button
-                        class="product product--shirt product--image"
-                        type="button"
-                        aria-label="Shirt"
-                    >
-                        <img
-                            class="product-image"
-                            src={merchShirt.src}
-                            alt=""
-                            width="356"
-                            height="396"
-                            loading="eager"
-                            decoding="async"
-                        />
-                    </button>
-                </div>
-                <div class="orbit-item orbit-item--cap">
-                    <button
-                        class="product product--cap product--image"
-                        type="button"
-                        aria-label="Hat"
-                    >
-                        <img
-                            class="product-image"
-                            src={merchHat.src}
-                            alt=""
-                            width="528"
-                            height="506"
-                            loading="eager"
-                            decoding="async"
-                        />
-                    </button>
-                </div>
-            </div>
-        </div>
     </div>
+
+    <section
+        id="shop"
+        class="home__shop items-background"
+        aria-labelledby="shop-title"
+        data-shop
+    >
+        <!-- the pile is for pointing at; the list beside it carries the same items for keyboards and screen readers -->
+        <div class="pile" aria-hidden="true">
+            {products.map((product) => {
+                const spot = PILE[product.id];
+                const cutout = cutouts[product.id];
+                return (
+                    <div
+                        class="pile__item"
+                        style={`--x: ${spot.x}%; --y: ${spot.y}%; --w: ${spot.w}%; --r: ${spot.r}deg; --z: ${spot.z}; --grow: ${spot.grow}`}
+                    >
+                        <img
+                            data-reveal
+                            src={`/preorder/cutouts/${product.id}.png`}
+                            alt=""
+                            width={cutout.width}
+                            height={cutout.height}
+                            loading="lazy"
+                            decoding="async"
+                            draggable="false"
+                        />
+                        <span
+                            class="pile__hit"
+                            data-item={product.id}
+                            style={`clip-path: ${cutout.clip}`}
+                        ></span>
+                    </div>
+                );
+            })}
+        </div>
+
+        <div class="shop-info">
+            <div class="shop-info__head" data-reveal>
+                <h2 id="shop-title" class="shop-info__title">
+                    WINTER 2026 DROP
+                </h2>
+                <button
+                    class="shop-cart-toggle"
+                    type="button"
+                    aria-haspopup="dialog"
+                    data-cart-open
+                >
+                    cart{" "}
+                    <span class="shop-cart-toggle__count" data-cart-count>
+                        0
+                    </span>
+                </button>
+            </div>
+            <ul class="shop-list">
+                {products.map((product) => (
+                    <li data-reveal>
+                        <button
+                            class="shop-list__row"
+                            type="button"
+                            data-item={product.id}
+                            aria-expanded="false"
+                            aria-controls={`shop-detail-${product.id}`}
+                        >
+                            <span class="shop-list__name">{product.name}</span>
+                            <span class="shop-list__side">
+                                <span
+                                    class="shop-list__state"
+                                    data-cart-state={product.id}
+                                ></span>
+                                {prices[product.id] != null && (
+                                    <span class="shop-list__price">
+                                        ${prices[product.id]}
+                                    </span>
+                                )}
+                            </span>
+                        </button>
+                    </li>
+                ))}
+            </ul>
+
+            <div class="shop-detail" data-reveal>
+                <p class="shop-detail__hint" data-detail="">
+                    pick something from the pile for a closer look.
+                </p>
+                {products.map((product) => {
+                    const sizes =
+                        product.sizing === "shirt"
+                            ? SHIRT_SIZES
+                            : product.sizing === "socks"
+                              ? SOCK_SIZES
+                              : [];
+                    return (
+                        <div
+                            class="shop-detail__item"
+                            id={`shop-detail-${product.id}`}
+                            data-detail={product.id}
+                            hidden
+                        >
+                            <p class="shop-detail__blurb">{product.blurb}</p>
+                            {product.sizing && (
+                                <figure class="shop-detail__sizing">
+                                    <figcaption>size chart</figcaption>
+                                    <SizeChart kind={product.sizing} />
+                                </figure>
+                            )}
+                            {product.variants && (
+                                <figure class="shop-variants">
+                                    <figcaption>
+                                        {product.variants.caption}
+                                    </figcaption>
+                                    <ul class="shop-variants__list">
+                                        {product.variants.images.map(
+                                            (image) => (
+                                                <li>
+                                                    <img
+                                                        data-node-id={
+                                                            image.nodeId
+                                                        }
+                                                        src={image.src}
+                                                        width={image.width}
+                                                        height={image.height}
+                                                        alt={image.alt}
+                                                        loading="lazy"
+                                                        decoding="async"
+                                                    />
+                                                </li>
+                                            ),
+                                        )}
+                                    </ul>
+                                    <p class="shop-variants__note">
+                                        {product.variants.note}
+                                    </p>
+                                </figure>
+                            )}
+                            {sizes.length > 0 && (
+                                <fieldset class="shop-sizes">
+                                    <legend>size</legend>
+                                    {sizes.map((size) => (
+                                        <label>
+                                            <input
+                                                type="radio"
+                                                name={`home-${product.sizing}-size`}
+                                                value={size}
+                                                data-size-for={product.id}
+                                            />
+                                            <span>{size}</span>
+                                        </label>
+                                    ))}
+                                </fieldset>
+                            )}
+                            <div class="shop-detail__actions">
+                                <div class="shop-detail__buy">
+                                    <div
+                                        class="qty"
+                                        role="group"
+                                        aria-label={`quantity, ${product.name}`}
+                                        data-qty-for={product.id}
+                                    >
+                                        <button
+                                            class="qty__step"
+                                            type="button"
+                                            data-step="-1"
+                                            aria-label={`one fewer ${product.name}`}
+                                            disabled
+                                        >
+                                            −
+                                        </button>
+                                        <output
+                                            class="qty__value"
+                                            data-qty-value
+                                        >
+                                            1
+                                        </output>
+                                        <button
+                                            class="qty__step"
+                                            type="button"
+                                            data-step="1"
+                                            aria-label={`one more ${product.name}`}
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                    <button
+                                        class="shop-detail__add"
+                                        type="button"
+                                        data-add={product.id}
+                                    >
+                                        {prices[product.id] != null
+                                            ? `add to cart · $${prices[product.id]}`
+                                            : "add to cart"}
+                                    </button>
+                                </div>
+                                <p
+                                    class="shop-detail__error"
+                                    role="alert"
+                                    data-add-error={product.id}
+                                ></p>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            <DitherButton
+                href="/preorder"
+                class="home__preorder"
+                cols={48}
+                rows={6}
+                data-reveal
+            >
+                PREORDER W2026
+            </DitherButton>
+            <p class="shop-note" data-reveal>
+                finished merch may look slightly different from the presented
+                designs
+            </p>
+        </div>
+
+        <!-- filled from the cart by home-cart.ts. data-lenis-prevent: wheel events in the drawer
+             (and on its backdrop) scroll natively, so Lenis doesn't move the page behind it -->
+        <dialog
+            class="cart-drawer"
+            aria-labelledby="cart-title"
+            data-cart-drawer
+            data-lenis-prevent
+        >
+            <div class="cart-drawer__panel" tabindex="-1" data-cart-focus>
+                <header class="cart-drawer__head">
+                    <h2 id="cart-title" class="cart-drawer__title">
+                        your cart
+                    </h2>
+                    <button
+                        class="cart-drawer__close"
+                        type="button"
+                        aria-label="close cart"
+                        data-cart-close
+                    >
+                        ×
+                    </button>
+                </header>
+                <p class="cart-drawer__empty" data-cart-empty>
+                    nothing here yet. pick something from the pile.
+                </p>
+                <ul class="cart-drawer__lines" data-cart-lines></ul>
+                <footer class="cart-drawer__foot" data-cart-foot>
+                    <p class="cart-drawer__total">
+                        <span>subtotal</span>
+                        <output data-cart-total>$0</output>
+                    </p>
+                    <DitherButton
+                        href="/preorder"
+                        class="cart-drawer__checkout"
+                        cols={48}
+                        rows={6}
+                    >
+                        CHECKOUT
+                    </DitherButton>
+                </footer>
+            </div>
+        </dialog>
+    </section>
+    <PriceData prices={prices} />
 </main>
 
 <script>
     import "../scripts/scene";
-    import "../scripts/notify";
+    import "../scripts/merch-pile";
+    import "../scripts/home-cart";
 </script>

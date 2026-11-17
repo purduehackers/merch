@@ -31,11 +31,13 @@ export const stripeConfig = (mode: StripeMode = stripeMode()) =>
         mode,
         secretKey: import.meta.env.STRIPE_SECRET_TEST_KEY as string | undefined,
         publishableKey: import.meta.env.PUBLIC_STRIPE_TEST_KEY as string | undefined,
+        webhookSecret: import.meta.env.STRIPE_WEBHOOK_TEST_SECRET as string | undefined,
         productIds: TEST_PRODUCT_IDS,
       }
     : {
         mode,
         secretKey: import.meta.env.STRIPE_SECRET_KEY as string | undefined,
         publishableKey: import.meta.env.PUBLIC_STRIPE_PUBLISHABLE_KEY as string | undefined,
+        webhookSecret: import.meta.env.STRIPE_WEBHOOK_SECRET as string | undefined,
         productIds: LIVE_PRODUCT_IDS,
       };

@@ -90,3 +90,20 @@ src/styles/preorder.css            checkout step styles
 
 - https://support.stripe.com
 - https://docs.stripe.com/mcp
+
+## Orders in Notion (pickup list)
+
+Every paid order becomes one row in the Notion pickup database: name, email, items, a number column per product and size (Shirt XS … Keychain), total, order date, "Picked up" and the Stripe session ID. Stripe tells the site through the webhook at `/api/stripe-webhook` ([src/pages/api/stripe-webhook.ts](src/pages/api/stripe-webhook.ts)); [src/scripts/notion.ts](src/scripts/notion.ts) writes the row and adds any columns the database is missing on the first order. A repeated event never adds a second row (it checks the Stripe session ID first).
+
+1. **Share the database with the integration.** In Notion, open the pickup database → `•••` → Connections → add **merch preorder** (the integration `NOTION_TOKEN` belongs to).
+2. **Env vars** (in `.env` and in Vercel):
+   - `NOTION_ORDERS_DATABASE_ID=41b181f3b6ed80b98f56f797721d1a1d` (the pickup database; `NOTION_DATABASE_ID` is the separate "notify me" sign-up list)
+   - `STRIPE_WEBHOOK_SECRET` (live) and `STRIPE_WEBHOOK_TEST_SECRET` (test), from step 3
+3. **Register the webhook.** Stripe Dashboard → Developers → Webhooks → Add endpoint: `https://<your domain>/api/stripe-webhook`, events `checkout.session.completed` and `checkout.session.async_payment_succeeded`. Copy its signing secret (`whsec_…`). Do it once in live mode and once in test mode.
+   - Locally: `stripe listen --forward-to localhost:4321/api/stripe-webhook` prints a test signing secret to use as `STRIPE_WEBHOOK_TEST_SECRET`.
+4. **Quantity per day.** In the database, add a table view grouped by **Ordered** (by day) and turn on **Sum** at the bottom of each quantity column. Without grouping, the sums are totals for the whole drop.
+
+5. **Daily totals (optional).** Create an empty Notion database (e.g. "Merch daily totals"), share it with **merch preorder** the same way, and set `NOTION_TOTALS_DATABASE_ID` to its ID. Each order then recounts its day from the pickup database and writes one row per day: Orders, a column per product and size, and Revenue. The columns are added on the first order; Sum at the bottom of each column gives the all-time totals.
+   - A day's row is recounted only when an order comes in that day, so deleting or editing an order row by hand shows up the next time someone orders that day.
+
+Orders from before this was set up aren't in Notion; Stripe only sends new events.
