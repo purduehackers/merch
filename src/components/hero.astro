@@ -13,6 +13,37 @@ import cutouts from "../scripts/product-cutouts.json";
 // From Stripe; if it can't be reached the page still renders, just without prices.
 const prices = await getPriceAmounts();
 
+// Structured data for search: each item as a Product on preorder, with its Stripe price.
+const origin = Astro.url.origin;
+const productName = (product: (typeof products)[number]) =>
+    product.title.map((word) => (word === "ASCII" ? word : word[0] + word.slice(1).toLowerCase())).join(" ");
+const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Purdue Hackers winter 2026 drop",
+    itemListElement: products.map((product, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        item: {
+            "@type": "Product",
+            name: `Purdue Hackers ${productName(product)}`,
+            description: product.description.join(" "),
+            image: product.images.map((image) => new URL(image.src, origin).href),
+            brand: { "@type": "Brand", name: "Purdue Hackers" },
+            url: `${origin}/?item=${product.id}`,
+            ...(prices[product.id] != null && {
+                offers: {
+                    "@type": "Offer",
+                    price: prices[product.id].toFixed(2),
+                    priceCurrency: "USD",
+                    availability: "https://schema.org/PreOrder",
+                    url: `${origin}/?item=${product.id}`,
+                },
+            }),
+        },
+    })),
+};
+
 // Where each cutout lands in the pile, as % of the pile's width (x, w) and height (y).
 // z is the stacking order; grow is how much it scales up on hover.
 const PILE = {
@@ -23,11 +54,13 @@ const PILE = {
 } as const;
 ---
 
+<script is:inline type="application/ld+json" set:html={JSON.stringify(structuredData).replace(/</g, "\\u003c")} />
+
 <main class="home" aria-labelledby="page-title">
     <div class="home__stage">
         <canvas id="scene" aria-hidden="true"></canvas>
         <h1 id="page-title" class="sr-only">
-            Merch
+            Purdue Hackers Merch
         </h1>
         <div class="home__intro">
             <p class="home__descriptor">for the doers, makers, and dreamers</p>
@@ -46,6 +79,7 @@ const PILE = {
                     width="323"
                     height="1144"
                     loading="eager"
+                    fetchpriority="high"
                     decoding="async"
                 />
             </div>
@@ -70,7 +104,7 @@ const PILE = {
                     >
                         <img
                             data-reveal
-                            src={`/preorder/cutouts/${product.id}.png`}
+                            src={`/preorder/cutouts/${product.id}.webp`}
                             alt=""
                             width={cutout.width}
                             height={cutout.height}

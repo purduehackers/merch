@@ -5,7 +5,7 @@ Usage (needs Pillow + numpy):
     python3 scripts/cutout-products.py
 
 Reads  public/preorder/figma-{item}.png  (650x650, white background)
-Writes public/preorder/cutouts/{item}.png  (transparent, trimmed)
+Writes public/preorder/cutouts/{item}.png  (transparent, trimmed) and .webp (what the site loads)
        src/scripts/product-cutouts.json    (size + a convex hit area per item, used as clip-path)
 """
 import json
@@ -114,6 +114,8 @@ def cut(item):
     image = image.crop(box)
     OUT.mkdir(parents=True, exist_ok=True)
     image.save(OUT / f"{item}.png", optimize=True)
+    # what the site loads: a quarter of the PNG's size
+    image.save(OUT / f"{item}.webp", quality=85, alpha_quality=90, method=6)
 
     # convex hull of the opaque pixels, as clip-path percentages, so hovering the
     # transparent corners of a cutout reaches the item underneath. A ring is left out,

@@ -6,7 +6,7 @@ import { ORDER_SCHEMA, TOTALS_SCHEMA, dayTotals, orderDay, orderProperties, tota
 const NOTION_VERSION = "2022-06-28";
 
 type Session = Parameters<typeof orderProperties>[0];
-type Page = { id: string; properties: Parameters<typeof dayTotals>[0][number]["properties"] };
+type Page = { id: string; created_time: string; properties: Parameters<typeof dayTotals>[0][number]["properties"] };
 
 const notion = async <T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> => {
   const token = import.meta.env.NOTION_TOKEN;
@@ -60,6 +60,29 @@ const queryAll = async (databaseId: string, filter: unknown) => {
   return rows;
 };
 
+/**
+ * Rows that should be one row (the same order, or the same day's totals) but were written
+ * twice at the same moment, e.g. by two server instances: keeps the oldest and moves the rest
+ * to Notion's trash. Oldest by creation time, then ID, so every writer keeps the same row.
+ */
+const keepOldest = async (rows: Page[]) => {
+  const [keep, ...extra] = [...rows].sort(
+    (a, b) => a.created_time.localeCompare(b.created_time) || a.id.localeCompare(b.id),
+  );
+  await Promise.all(extra.map((row) => notion(`pages/${row.id}`, { method: "PATCH", body: { archived: true } })));
+  return keep;
+};
+
+// One order at a time per server instance. Stripe can deliver an event twice at once, and two
+// orders can land together; run side by side, each would miss the other's rows and write a
+// duplicate. keepOldest covers the same race across instances.
+let queue: Promise<unknown> = Promise.resolve();
+const oneAtATime = <T>(task: () => Promise<T>): Promise<T> => {
+  const run = queue.then(task, task);
+  queue = run.catch(() => {});
+  return run;
+};
+
 const ordersDatabase = () => {
   const id = import.meta.env.NOTION_ORDERS_DATABASE_ID;
   if (!id) throw new Error("NOTION_ORDERS_DATABASE_ID is not set");
@@ -70,20 +93,20 @@ const ordersDatabase = () => {
  * Adds the order to the pickup database unless it's already there. Stripe can send the same
  * event more than once, so the Stripe session ID is checked first. Returns false for a repeat.
  */
-export const recordOrder = async (session: Session) => {
+const recordOrder = async (session: Session) => {
   const databaseId = ordersDatabase();
   const title = await prepare(databaseId, ORDER_SCHEMA);
+  const bySession = { property: "Stripe session", rich_text: { equals: session.id } };
 
-  const existing = await notion<{ results: unknown[] }>(`databases/${databaseId}/query`, {
-    method: "POST",
-    body: { filter: { property: "Stripe session", rich_text: { equals: session.id } }, page_size: 1 },
-  });
-  if (existing.results.length) return false;
+  if ((await queryAll(databaseId, bySession)).length) return false;
 
   await notion("pages", {
     method: "POST",
     body: { parent: { database_id: databaseId }, properties: orderProperties(session, title) },
   });
+  // the same event may have been written at this moment on another server instance
+  const rows = await queryAll(databaseId, bySession);
+  if (rows.length > 1) await keepOldest(rows);
   return true;
 };
 
@@ -93,7 +116,7 @@ export const recordOrder = async (session: Session) => {
  * adding on means a retried event or two orders at once can't throw the numbers off; the
  * latest order's day is always exact. Does nothing if NOTION_TOTALS_DATABASE_ID isn't set.
  */
-export const updateDayTotals = async (session: Session) => {
+const updateDayTotals = async (session: Session) => {
   const totalsId = import.meta.env.NOTION_TOTALS_DATABASE_ID;
   if (!totalsId) return;
   const day = orderDay(session);
@@ -104,7 +127,30 @@ export const updateDayTotals = async (session: Session) => {
   ]);
   const properties = totalsProperties(day, dayTotals(orders, session), title);
 
-  const [row] = await queryAll(totalsId, { property: title, title: { equals: day } });
-  if (row) await notion(`pages/${row.id}`, { method: "PATCH", body: { properties } });
-  else await notion("pages", { method: "POST", body: { parent: { database_id: totalsId }, properties } });
+  const byDay = { property: title, title: { equals: day } };
+  const rows = await queryAll(totalsId, byDay);
+  if (rows.length) {
+    const row = await keepOldest(rows);
+    await notion(`pages/${row.id}`, { method: "PATCH", body: { properties } });
+    return;
+  }
+  await notion("pages", { method: "POST", body: { parent: { database_id: totalsId }, properties } });
+  // the day's first two orders may have come in together on two server instances
+  const made = await queryAll(totalsId, byDay);
+  if (made.length > 1) {
+    const row = await keepOldest(made);
+    await notion(`pages/${row.id}`, { method: "PATCH", body: { properties } });
+  }
 };
+
+/**
+ * Records a paid order in the pickup database (unless it's already there) and recounts its
+ * day in the totals database. Returns false for an order that was already recorded; its day is
+ * recounted anyway, so a retry finishes totals that failed the first time.
+ */
+export const recordPaidOrder = (session: Session) =>
+  oneAtATime(async () => {
+    const added = await recordOrder(session);
+    await updateDayTotals(session);
+    return added;
+  });

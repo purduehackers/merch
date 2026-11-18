@@ -85,6 +85,17 @@ test("dayTotals doesn't count the new order twice when the query already returns
   assert.equal(totals.revenue, 25);
 });
 
+test("dayTotals counts a duplicated order once, and rows without a session each once", () => {
+  const latest = { id: "cs_new", amount_total: 500, metadata: { lines: "keychain::1" } };
+  const dupe = row("cs_a", { "Shirt L": 1 }, 25);
+  const byHand = row("", { Tote: 1 }, 15);
+  const totals = dayTotals([dupe, dupe, dupe, byHand, byHand], latest);
+  assert.equal(totals.orders, 4);
+  assert.equal(totals.quantities["Shirt L"], 1);
+  assert.equal(totals.quantities.Tote, 2);
+  assert.equal(totals.revenue, 60);
+});
+
 test("totalsProperties writes one day's row", () => {
   const props = totalsProperties("2026-11-16", { orders: 2, quantities: Object.fromEntries(quantityColumns().map((c) => [c, c === "Tote" ? 4 : 0])), revenue: 60.004 }, "Day");
   assert.deepEqual(props.Day, { title: [{ text: { content: "2026-11-16" } }] });

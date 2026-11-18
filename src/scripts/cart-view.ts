@@ -61,7 +61,7 @@ export const renderCartLines = (
 
       const thumb = document.createElement("img");
       thumb.className = "cart-line__thumb";
-      thumb.src = `/preorder/cutouts/${line.item}.png`; // trimmed, so the item fills its square
+      thumb.src = `/preorder/cutouts/${line.item}.webp`; // trimmed, so the item fills its square
       thumb.alt = "";
 
       const text = document.createElement("div");

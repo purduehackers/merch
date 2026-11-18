@@ -32,7 +32,7 @@ export const products: Product[] = [
     description: [
       "a black tee with an ascii side-scroller across the front: a little hacker at START!, platforms, fish and birds along the way.",
     ],
-    images: [{ src: "/preorder/figma-shirt.png", alt: "Black t-shirt with a small ascii side-scroller game printed across the front" }],
+    images: [{ src: "/preorder/figma-shirt.webp", alt: "Black t-shirt with a small ascii side-scroller game printed across the front" }],
     sizing: "shirt",
   },
   {
@@ -41,7 +41,7 @@ export const products: Product[] = [
     blurb: "black tote, ascii sailboat",
     title: ["SHIP IT", "TOTE"],
     description: ["a black tote with an ascii sailboat on a dotted sea, and SHIP IT. underneath."],
-    images: [{ src: "/preorder/figma-tote.png", alt: "Black tote bag with a yellow ascii sailboat over blue dotted waves and the words SHIP IT." }],
+    images: [{ src: "/preorder/figma-tote.webp", alt: "Black tote bag with a yellow ascii sailboat over blue dotted waves and the words SHIP IT." }],
     oneSize: "one size",
   },
   {
@@ -50,7 +50,7 @@ export const products: Product[] = [
     blurb: "cream crew socks",
     title: ["SHIP IT", "SOCKS"],
     description: ["cream ribbed crew socks with Ship it knit up the side in black."],
-    images: [{ src: "/preorder/figma-socks.png", alt: "Pair of cream crew socks with Ship it knit vertically up the side in black" }],
+    images: [{ src: "/preorder/figma-socks.webp", alt: "Pair of cream crew socks with Ship it knit vertically up the side in black" }],
     sizing: "socks",
   },
   {
@@ -59,7 +59,7 @@ export const products: Product[] = [
     blurb: "creatura + logo charms",
     title: ["CREATURA", "KEYCHAIN"],
     description: ["two charms on a yellow ring: a creatura dino and the purdue hackers logo."],
-    images: [{ src: "/preorder/figma-keychain.png", alt: "Keychain with a grey dinosaur charm and a yellow Purdue Hackers logo charm on a yellow ring" }],
+    images: [{ src: "/preorder/figma-keychain.webp", alt: "Keychain with a grey dinosaur charm and a yellow Purdue Hackers logo charm on a yellow ring" }],
     oneSize: "one size",
     // the creatura charm varies; the glider (Purdue Hackers logo) charm is on every keychain.
     // Figma f2026-drop: frog 416:9, squirrel 416:12.

@@ -8,7 +8,11 @@ import { getPriceAmounts } from "../scripts/stripe-prices";
 const prices = await getPriceAmounts();
 ---
 
-<Layout>
+<Layout
+    title="Preorder"
+    description="Check out your Purdue Hackers merch preorder."
+    noindex
+>
     <main class="preorder" aria-label="W2026 merch preorder">
         <section class="preorder__panel">
             <div class="preorder__shapes" aria-hidden="true">

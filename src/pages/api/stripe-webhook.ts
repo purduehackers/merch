@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
-import { recordOrder, updateDayTotals } from '../../scripts/notion';
+import { recordPaidOrder } from '../../scripts/notion';
 import { stripeConfig } from '../../scripts/stripe-products';
 
 export const prerender = false;
@@ -36,9 +36,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (session.payment_status !== 'paid') return new Response('Not paid yet', { status: 200 });
 
   try {
-    const added = await recordOrder(session);
-    // also on a repeat: if the totals failed last time, Stripe's retry finishes them now
-    await updateDayTotals(session);
+    const added = await recordPaidOrder(session);
     return new Response(added ? 'Recorded' : 'Already recorded', { status: 200 });
   } catch (error) {
     console.error('Notion order error:', error);

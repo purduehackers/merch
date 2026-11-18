@@ -126,7 +126,8 @@ type NotionProperty = { type: string; number?: number | null };
  * Adds up a day's orders, given their rows in the pickup database (as Notion returns them)
  * and the order that just came in. The new order is counted from the session rather than its
  * row, since Notion's query can lag a moment behind a page it just created; its row, if the
- * query did return it, is skipped by session ID so it isn't counted twice.
+ * query did return it, is skipped by session ID so it isn't counted twice. Every other order
+ * counts once too, even if a duplicate row of it slipped in (see recordOrder in notion.ts).
  */
 export const dayTotals = (
   rows: { properties: Record<string, NotionProperty & { rich_text?: { plain_text: string }[] }> }[],
@@ -134,9 +135,12 @@ export const dayTotals = (
 ): DayTotals => {
   const own = orderCounts(latest);
   const totals: DayTotals = { orders: 1, quantities: { ...own.quantities }, revenue: own.total };
+  const counted = new Set([latest.id]);
   for (const row of rows) {
     const session = row.properties["Stripe session"]?.rich_text?.map((t) => t.plain_text).join("") ?? "";
-    if (session === latest.id) continue;
+    // rows added by hand have no session: each is its own order
+    if (session && counted.has(session)) continue;
+    if (session) counted.add(session);
     totals.orders += 1;
     for (const column of quantityColumns()) totals.quantities[column] += row.properties[column]?.number ?? 0;
     totals.revenue += row.properties.Total?.number ?? 0;
