@@ -1,6 +1,6 @@
 # Merchandise checkout
 
-Customers pick items and sizes on the homepage, then pay on `/preorder`. The server uses each Stripe product’s active one-time USD price. A price change between the cart and checkout sends the buyer back to review the total.
+Customers pick items and sizes on the homepage, then pay on `/preorder` by card, Apple Pay, or Google Pay. Stripe shows the wallets on eligible devices. The server uses each Stripe product’s active one-time USD price. A price change between the cart and checkout sends the buyer back to review the total.
 
 ## Deployment settings
 

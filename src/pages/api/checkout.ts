@@ -57,6 +57,8 @@ export const POST: APIRoute = async ({ request, url }) => {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       ui_mode: "form",
+      allowed_payment_method_types: ["card"],
+      wallet_options: { link: { display: "never" } },
       line_items: [...quantities].map(([price, quantity]) => ({ price, quantity })),
       billing_address_collection: "required",
       automatic_tax: { enabled: false },
