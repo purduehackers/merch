@@ -23,7 +23,7 @@ const init = () => {
     if (empty) empty.hidden = cart.lines.length > 0;
     const subtotal = cartTotal(cart, prices);
     if (next) next.disabled = cart.lines.length === 0 || subtotal === null;
-    if (total) total.value = subtotal === null ? "price unavailable · reload to retry" : subtotal.toFixed(2);
+    if (total) total.value = subtotal === null ? "Reload for prices" : `$${subtotal.toFixed(2)}`;
   };
 
   const controller = new AbortController();

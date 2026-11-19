@@ -1,5 +1,4 @@
 ---
-import { getSecret } from "astro:env/server";
 import "../styles/preorder.css";
 import "../styles/cart.css";
 import Layout from "../components/layout.astro";
@@ -14,8 +13,8 @@ Astro.response.headers.set("Referrer-Policy", "no-referrer");
 
 <Layout
     title="Preorder"
-    description="Check out your Purdue Hackers merch preorder."
-    noindex
+    description="Preorder merch from Afterhours Foundation for pickup at Purdue."
+    checkout
 >
     <main class="preorder" aria-label="W2026 merch preorder">
         <section class="preorder__panel">
@@ -63,72 +62,78 @@ Astro.response.headers.set("Referrer-Policy", "no-referrer");
                     />
                 </div>
             </div>
-            <div class="preorder__notice">
-                <p>sold by The Afterhours Foundation, Inc. for pickup at Purdue.
-                    your statement will show <strong>AFTERHOURS FOUNDATION</strong>.</p>
-                <details>
-                    <summary>pickup, refunds &amp; privacy</summary>
-                    <p>for pickup timing or a shipping request, get in touch before you order.
-                        for cancellations, returns or refunds, email <a href="mailto:phackers@purdue.edu">phackers@purdue.edu</a>
-                        with the email address you used at checkout.</p>
-                    <p>Afterhours uses your pickup name, email and order details to fulfill
-                        your order and respond to requests. the pickup list is stored in Notion.
-                        Stripe handles your payment details under its <a href="https://stripe.com/privacy">privacy policy</a>.</p>
-                </details>
-                {getSecret("VERCEL_ENV") !== "production" && <p>Sandbox checkout · test payments only</p>}
-            </div>
             <form class="preorder__form" method="post" hidden={returning}>
-                <a class="preorder__back preorder__back--shop" href="/#shop">&larr; back to the shop</a>
+                <a class="preorder__back preorder__back--shop" href="/#shop">&larr; Back to the shop</a>
+                <h1 class="preorder__heading">Your preorder</h1>
+                <p class="preorder__pickup">Pick up at Purdue.</p>
                 <div class="preorder__contact">
                     <label>
-                        <span>pickup name</span>
+                        <span>Pickup name</span>
                         <input
                             name="name"
                             type="text"
                             autocomplete="name"
                             maxlength="200"
-                            placeholder="wack hacker"
                             required
                         />
                     </label>
                     <label>
-                        <span>email</span>
+                        <span>Email</span>
                         <input
                             name="email"
                             type="email"
                             autocomplete="email"
                             maxlength="254"
-                            placeholder="wackhacker@gmail.com"
                             required
                         />
                     </label>
                 </div>
                 <p class="preorder__empty" data-cart-empty hidden>
-                    your cart is empty. <a href="/#shop">pick something on the homepage</a>.
+                    Your cart is empty. <a href="/#shop">Shop the drop</a>.
                 </p>
                 <ul class="preorder__summary" aria-label="your cart" tabindex="-1" data-cart-lines data-cart-focus></ul>
                 <div class="preorder__total">
-                    <span>total (USD)</span>
+                    <span>Total (USD)</span>
                     <output data-preorder-total>—</output>
                 </div>
                 <p class="preorder__error" role="alert" data-preorder-error></p>
-                <noscript>enable JavaScript to check out.</noscript>
+                <noscript>Enable JavaScript to check out.</noscript>
                 <button class="preorder__next" type="submit" disabled>
-                    next
+                    Continue to payment
                 </button>
             </form>
             <div class="preorder__checkout" hidden={!returning}>
                 <button class="preorder__back" type="button" data-checkout-back hidden={returning}>
-                    &larr; back
+                    &larr; Edit preorder
                 </button>
+                {!returning && <h1 class="preorder__heading preorder__heading--payment" tabindex="-1">Payment</h1>}
                 <p
                     class="preorder__checkout-message"
                     role="status"
                     data-checkout-message
-                >{returning ? "checking your payment…" : ""}</p>
-                <a class="preorder__back" data-checkout-check hidden>check payment status</a>
+                >{returning ? "Checking your payment…" : ""}</p>
+                <a class="preorder__back" data-checkout-check hidden>Check payment status</a>
+                {returning && <section class="paid-order" data-paid-order hidden aria-labelledby="paid-heading">
+                    <img class="paid-order__frog" src="/preorder/keychain/frog.svg" width="112" height="85" alt="" />
+                    <h1 class="preorder__heading" id="paid-heading" tabindex="-1">Preorder confirmed!</h1>
+                    <p>Thank you from Afterhours Foundation.</p>
+                    <ul class="paid-order__lines" aria-label="Items ordered" data-paid-lines hidden></ul>
+                    <div class="paid-order__total" data-paid-total hidden>
+                        <span>Total paid</span><strong></strong>
+                    </div>
+                    <p>Pick up at Purdue. Email <a href="mailto:help@afterhours.foundation">help@afterhours.foundation</a> for pickup details.</p>
+                    <a class="preorder__back" href="/#shop">&larr; Back to the shop</a>
+                </section>}
                 <div id="checkout-form"></div>
             </div>
+            <details class="preorder__notice">
+                <summary>Pickup, refunds &amp; privacy</summary>
+                <p>The Afterhours Foundation, Inc. sells this merch. Your statement shows <strong>AFTERHOURS FOUNDATION</strong>.</p>
+                <p>Email <a href="mailto:help@afterhours.foundation">help@afterhours.foundation</a> before ordering if you need shipping or have pickup questions.
+                    For cancellations, returns or refunds, email us from the address you used at checkout.</p>
+                <p>Afterhours keeps your pickup name, email and order in Notion to arrange pickup and answer questions.
+                    Resend emails your receipt. <a href="https://stripe.com/privacy">Stripe</a> handles your payment details.</p>
+            </details>
             <script>
                 import "../scripts/preorder";
             </script>

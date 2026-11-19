@@ -11,6 +11,7 @@ Set these variables on the Vercel `merch` project. Production uses the Afterhour
 | `STRIPE_RESTRICTED_KEY` or `STRIPE_SECRET_KEY` | Live server key | Sandbox server key |
 | `STRIPE_PUBLISHABLE_KEY` (Vercel integration) or `PUBLIC_STRIPE_PUBLISHABLE_KEY` | Live publishable key | Sandbox publishable key |
 | `STRIPE_WEBHOOK_SECRET` | Signing secret for the live merch endpoint | Signing secret for the sandbox endpoint or local CLI listener |
+| `RESEND_API_KEY` | Sending key for `mail.afterhours.foundation` | Omit |
 | `NOTION_TOKEN` | Integration with access to the pickup database | Only needed for a sandbox pickup database |
 | `NOTION_ORDERS_DATABASE_ID` | Merch items/pickup form | Use `NOTION_TEST_ORDERS_DATABASE_ID` for test orders |
 
@@ -22,7 +23,11 @@ Register `/api/stripe-webhook` for `checkout.session.completed` and `checkout.se
 
 The webhook checks the signature, account mode, integration and paid status before writing to the pickup list. The Stripe Session ID ties the payment to its Notion order. Failed writes return an error so Stripe can retry. The optional `NOTION_TOTALS_DATABASE_ID` configures daily totals. Sandbox orders only use the explicitly configured `NOTION_TEST_ORDERS_DATABASE_ID` and optional `NOTION_TEST_TOTALS_DATABASE_ID`. A sandbox without a pickup database acknowledges paid events without writing to Notion.
 
-The app requests a payment receipt for the buyer’s email. The return page distinguishes paid, pending, failed and expired orders. Staff should check the payment in Stripe before issuing a refund or fulfilling an uncertain order. Refund email notifications are an account-wide setting in Stripe, separate from payment receipts.
+New live orders receive an Afterhours confirmation from `store@mail.afterhours.foundation`. Replies go to `help@afterhours.foundation`. The email shows a photo for each purchased product, sizes, quantities, line amounts and the total paid. Stripe supplies the amounts recorded at checkout. Sandbox orders do not send customer email. Stripe can also send a separate receipt if **Successful payments** is enabled in the account’s [email settings](https://docs.stripe.com/receipts).
+
+The signed webhook records pickup and sends the confirmation independently. Resend handles delivery. The product photos and wordmark use public image URLs so mail clients can load them without signing in.
+
+The webhook uses the Checkout Session to deduplicate sends. Resend accepts repeated requests with the same [idempotency key](https://resend.com/docs/dashboard/emails/idempotency-keys) for 24 hours. A permanent completion marker in Vercel Blob prevents later Stripe retries from resending a receipt. If the webhook reports an unresolved delivery after the retry window, check the recipient and order time in the [Resend email log](https://resend.com/emails) and locate `order-confirmations/<SHA-256 of session ID>/` in Blob. If Resend accepted the email, add a `complete` marker. If Resend confirms it never accepted the email, remove the `sending` marker. Then replay the Stripe event.
 
 ## Products and tax
 

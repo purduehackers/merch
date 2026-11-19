@@ -1,6 +1,7 @@
 import { loadStripe } from "@stripe/stripe-js/pure";
 import type { Appearance, StripeCheckoutForm } from "@stripe/stripe-js";
 import { cartTotal, clearPaidCart, readCart, rememberCheckout } from "./cart";
+import { productName } from "./cart-view";
 
 const FONT_BASE = "https://f3ibyzhjurhjiwis.public.blob.vercel-storage.com";
 const fonts = [
@@ -43,6 +44,36 @@ const appearance: Appearance = {
   },
 };
 
+type PaidOrder = {
+  lines: { item: string; size: string | null; qty: number }[];
+  total: number | null;
+  currency: string | null;
+};
+
+function showPaidOrder(checkout: HTMLElement, order?: PaidOrder) {
+  const receipt = checkout.querySelector<HTMLElement>("[data-paid-order]")!;
+  const list = receipt.querySelector<HTMLUListElement>("[data-paid-lines]")!;
+  if (order?.lines?.length) {
+    for (const { item, size, qty } of order.lines) {
+      const row = document.createElement("li");
+      const name = document.createElement("span");
+      name.textContent = size ? `${productName(item)} · ${size}` : productName(item);
+      const quantity = document.createElement("span");
+      quantity.textContent = `× ${qty}`;
+      row.append(name, quantity);
+      list.append(row);
+    }
+    list.hidden = false;
+  }
+  if (order?.currency === "usd" && typeof order.total === "number") {
+    const total = receipt.querySelector<HTMLElement>("[data-paid-total]")!;
+    total.querySelector("strong")!.textContent = `$${(order.total / 100).toFixed(2)} USD`;
+    total.hidden = false;
+  }
+  receipt.hidden = false;
+  receipt.querySelector("h1")!.focus({ preventScroll: true });
+}
+
 async function showPaymentStatus(sessionId: string, checkout: HTMLElement, signal: AbortSignal) {
   const message = checkout.querySelector<HTMLElement>("[data-checkout-message]")!;
   const check = checkout.querySelector<HTMLAnchorElement>("[data-checkout-check]")!;
@@ -51,20 +82,22 @@ async function showPaymentStatus(sessionId: string, checkout: HTMLElement, signa
     const query = new URLSearchParams({ session_id: sessionId });
     const response = await fetch(`/api/checkout?${query}`, { signal, cache: "no-store" });
     if (!response.ok) throw new Error();
-    const { state } = await response.json();
+    const { state, order } = await response.json();
+    if (signal.aborted) return;
     switch (state) {
       case "paid":
-        message.textContent = "payment received. thanks for preordering!";
+        message.textContent = "";
         clearPaidCart(sessionId);
+        showPaidOrder(checkout, order);
         return;
       case "pending":
-        message.textContent = "your payment is still processing. check here again before placing another order.";
+        message.textContent = "Your payment is processing. Check its status before placing another order.";
         break;
       case "failed":
       case "expired":
       case "open":
-        message.textContent = state === "failed" ? "your payment failed." : "this checkout did not complete a payment.";
-        check.textContent = "return to your cart";
+        message.textContent = state === "failed" ? "Your payment failed." : "You haven’t paid for this order.";
+        check.textContent = "Return to your cart";
         check.href = "/preorder";
         break;
       default:
@@ -72,7 +105,7 @@ async function showPaymentStatus(sessionId: string, checkout: HTMLElement, signa
     }
   } catch {
     if (signal.aborted) return;
-    message.textContent = "we couldn’t check this payment. check again or email phackers@purdue.edu before placing another order.";
+    message.textContent = "We couldn’t check your payment. Try again or email help@afterhours.foundation before placing another order.";
   }
   check.hidden = false;
 }
@@ -115,7 +148,7 @@ export function initCheckout(
     const cart = readCart();
     const total = cartTotal(cart, prices);
     if (!cart.lines.length || total === null) {
-      error.textContent = "check your cart and reload to get the latest prices.";
+      error.textContent = "Reload your cart to check prices.";
       return;
     }
 
@@ -144,7 +177,7 @@ export function initCheckout(
         signal,
       });
       if (!response.ok) {
-        if (response.status === 409) error.textContent = "your order changed. reload to review the latest prices.";
+        if (response.status === 409) error.textContent = "Your order changed. Reload your cart to review the prices.";
         if (response.status === 400) error.textContent = await response.text();
         throw new Error();
       }
@@ -181,10 +214,11 @@ export function initCheckout(
         if (!signal.aborted) location.assign(returnUrl.href);
       });
       mounted.mount("#checkout-form");
+      checkout.querySelector<HTMLElement>("h1")?.focus();
     } catch {
       if (signal.aborted) return;
       showCart();
-      error.textContent ||= "couldn’t open checkout. please try again.";
+      error.textContent ||= "Couldn’t open checkout. Try again.";
     } finally {
       form.inert = false;
       form.removeAttribute("aria-busy");

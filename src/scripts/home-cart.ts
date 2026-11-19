@@ -61,7 +61,7 @@ const init = () => {
       state.textContent = n ? `${n} in cart` : "";
     }
     if (count) count.textContent = String(items);
-    if (checkout) checkout.textContent = items ? `CHECKOUT (${items})` : "ADD AN ITEM TO PREORDER";
+    if (checkout) checkout.textContent = items ? `CHECKOUT (${items})` : "CHECKOUT";
     // nothing to preorder yet: the button goes nowhere (an <a> without href, marked disabled)
     if (main) {
       if (items) {
@@ -119,7 +119,7 @@ const init = () => {
         return;
       }
       if (room(item) <= 0) {
-        setError(item, `that's the most we can take per order (${MAX_QTY})`);
+        setError(item, `limit of ${MAX_QTY} per ${chosenSize(item) ? "size" : "item"}`);
         return;
       }
       const qty = Math.min(pending.get(item) ?? 1, room(item));

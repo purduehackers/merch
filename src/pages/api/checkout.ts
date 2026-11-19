@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { getSecret } from "astro:env/server";
 import Stripe from "stripe";
 import { isMerchSession, parseOrder, paymentState } from "../../scripts/merch-order";
+import { orderLines } from "../../scripts/order-notion";
 import { getStripePrices } from "../../scripts/stripe-prices";
 import { isStoreOrigin, stripeConfig } from "../../scripts/stripe-products";
 
@@ -40,7 +41,8 @@ export const POST: APIRoute = async ({ request, url }) => {
   const order = await readOrder(request);
   if (order instanceof Response) return order;
   const { stripe, productIds, publishableKey, webhookSecret, live } = stripeConfig(getSecret);
-  const canFulfill = !live || (webhookSecret && getSecret("NOTION_TOKEN") && getSecret("NOTION_ORDERS_DATABASE_ID"));
+  const canFulfill = !live || (webhookSecret && getSecret("NOTION_TOKEN") &&
+    getSecret("NOTION_ORDERS_DATABASE_ID") && getSecret("RESEND_API_KEY"));
   if (!stripe || !publishableKey || !canFulfill) return new Response("Checkout is unavailable", { status: 503 });
 
   try {
@@ -63,8 +65,11 @@ export const POST: APIRoute = async ({ request, url }) => {
       billing_address_collection: "required",
       automatic_tax: { enabled: false },
       customer_email: order.email,
-      metadata: order.metadata,
-      payment_intent_data: { receipt_email: order.email, description: order.metadata.items, metadata: order.metadata },
+      metadata: live ? { ...order.metadata, confirmation: "merch_email" } : order.metadata,
+      payment_intent_data: {
+        description: order.metadata.items,
+        metadata: order.metadata,
+      },
       return_url: `${url.origin}/preorder?session_id={CHECKOUT_SESSION_ID}`,
     }, { idempotencyKey: `merch:${order.attempt}` });
     if (!session.client_secret) return new Response("Checkout is unavailable", { status: 502 });
@@ -86,7 +91,11 @@ export const GET: APIRoute = async ({ url }) => {
     const session = await stripe.checkout.sessions.retrieve(id, { expand: ["payment_intent"] });
     if (!await isMerchSession(session, live, productIds, stripe))
       return new Response("Unknown order", { status: 404, headers: noStore });
-    return Response.json({ state: paymentState(session), status: session.status, payment_status: session.payment_status }, { headers: noStore });
+    const state = paymentState(session);
+    const order = state === "paid"
+      ? { lines: orderLines(session.metadata), total: session.amount_total, currency: session.currency }
+      : undefined;
+    return Response.json({ state, status: session.status, payment_status: session.payment_status, order }, { headers: noStore });
   } catch (error) {
     if (error instanceof Stripe.errors.StripeError && error.code === "resource_missing")
       return new Response("Unknown order", { status: 404, headers: noStore });

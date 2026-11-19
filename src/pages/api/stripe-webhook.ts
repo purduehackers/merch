@@ -3,6 +3,7 @@ import { getSecret } from "astro:env/server";
 import type Stripe from "stripe";
 import { isMerchSession } from "../../scripts/merch-order";
 import { recordPaidOrder } from "../../scripts/notion";
+import { confirmOrderByEmail } from "../../scripts/order-confirmation";
 import { stripeConfig } from "../../scripts/stripe-products";
 
 export const prerender = false;
@@ -30,11 +31,19 @@ export const POST: APIRoute = async ({ request }) => {
     const databaseId = getSecret(live ? "NOTION_ORDERS_DATABASE_ID" : "NOTION_TEST_ORDERS_DATABASE_ID");
     const totalsId = getSecret(live ? "NOTION_TOTALS_DATABASE_ID" : "NOTION_TEST_TOTALS_DATABASE_ID");
     if (!live && !databaseId) return new Response("Sandbox order", { status: 200 });
-    if (!databaseId) return new Response("Pickup database unavailable", { status: 503 });
-    await recordPaidOrder(session, databaseId, totalsId);
+    const [pickup, confirmation] = await Promise.allSettled([
+      databaseId ? recordPaidOrder(session, databaseId, totalsId) : Promise.reject(new Error("Missing pickup database")),
+      live && session.metadata?.confirmation === "merch_email" ? confirmOrderByEmail(stripe, session, productIds, getSecret("RESEND_API_KEY")) : undefined,
+    ]);
+    if (pickup.status === "rejected" || confirmation.status === "rejected") {
+      console.error("Merchandise fulfillment incomplete", {
+        eventId: event.id, sessionId: session.id, pickup: pickup.status, confirmation: confirmation.status,
+      });
+      return new Response("Could not fulfill order", { status: 500 });
+    }
     return new Response(null, { status: 200 });
   } catch {
-    console.error("Could not record merchandise payment", { eventId: event.id, sessionId: session.id });
-    return new Response("Could not record order", { status: 500 });
+    console.error("Could not fulfill merchandise order", { eventId: event.id, sessionId: session.id });
+    return new Response("Could not fulfill order", { status: 500 });
   }
 };
