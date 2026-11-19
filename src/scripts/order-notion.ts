@@ -1,30 +1,27 @@
-// Turns a paid Stripe Checkout Session into a row for the pickup database in Notion.
-// Pure functions only (no imports), so they're easy to test; notion.ts does the requests.
+import { SHIRT_SIZES, SOCK_SIZES } from "./preorder-lab/body.ts";
 
 /** product → its sizes, in the order the site shows them. No sizes: one column. */
 export const COLUMNS: { item: string; label: string; sizes: string[] }[] = [
-  { item: "shirt", label: "Shirt", sizes: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"] },
+  { item: "shirt", label: "Shirt", sizes: SHIRT_SIZES },
   { item: "tote", label: "Tote", sizes: [] },
-  { item: "socks", label: "Socks", sizes: ["S", "M", "L", "XL"] },
+  { item: "socks", label: "Socks", sizes: SOCK_SIZES },
   { item: "keychain", label: "Keychain", sizes: [] },
 ];
 
 /** one column per product + size: "Shirt M", "Tote", … */
-export const quantityColumns = () =>
-  COLUMNS.flatMap(({ label, sizes }) => (sizes.length ? sizes.map((size) => `${label} ${size}`) : [label]));
+export const quantityColumns = COLUMNS.flatMap(({ label, sizes }) =>
+  sizes.length ? sizes.map((size) => `${label} ${size}`) : [label],
+);
 
-const columnFor = (item: string, size: string | null) => {
-  const product = COLUMNS.find((c) => c.item === item);
-  if (!product) return null;
-  if (!product.sizes.length) return product.label;
-  return size && product.sizes.includes(size) ? `${product.label} ${size}` : null;
-};
+const quantitySchema = Object.fromEntries(
+  quantityColumns.map((name) => [name, { number: { format: "number" } }]),
+);
 
 /** The database's columns besides its title (the buyer's name), as Notion property schemas. */
 export const ORDER_SCHEMA: Record<string, unknown> = {
   Email: { email: {} },
   Items: { rich_text: {} },
-  ...Object.fromEntries(quantityColumns().map((name) => [name, { number: { format: "number" } }])),
+  ...quantitySchema,
   Total: { number: { format: "dollar" } },
   Ordered: { date: {} },
   "Picked up": { checkbox: {} },
@@ -58,7 +55,7 @@ export const orderLines = (metadata: Record<string, string> | null | undefined):
 export const itemsText = (lines: OrderLine[]) =>
   lines.map(({ qty, item, size }) => `${qty}× ${item}${size ? ` (${size})` : ""}`).join(", ");
 
-type Session = {
+export type OrderSession = {
   id: string;
   created: number;
   amount_total: number | null;
@@ -72,69 +69,67 @@ const text = (content: string) => ({ rich_text: content ? [{ text: { content: co
 const TIME_ZONE = "America/Indiana/Indianapolis";
 
 /** the day the order was placed (YYYY-MM-DD), on Purdue's clock */
-export const orderDay = (session: Pick<Session, "created">, timeZone = TIME_ZONE) =>
+export const orderDay = (session: Pick<OrderSession, "created">, timeZone = TIME_ZONE) =>
   new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(
     new Date(session.created * 1000),
   );
 
-/** how many of each column one order holds, plus its total in dollars */
-export const orderCounts = (session: Pick<Session, "metadata" | "amount_total">) => {
-  const quantities: Record<string, number> = Object.fromEntries(quantityColumns().map((name) => [name, 0]));
-  for (const line of orderLines(session.metadata)) {
-    const column = columnFor(line.item, line.size);
-    if (column) quantities[column] += line.qty;
+function countQuantities(lines: OrderLine[]) {
+  const quantities: Record<string, number> = Object.fromEntries(quantityColumns.map((name) => [name, 0]));
+  for (const { item, size, qty } of lines) {
+    const product = COLUMNS.find((p) => p.item === item);
+    if (!product) continue;
+    if (!product.sizes.length) quantities[product.label] += qty;
+    else if (size && product.sizes.includes(size)) quantities[`${product.label} ${size}`] += qty;
   }
-  return { quantities, total: session.amount_total != null ? session.amount_total / 100 : 0 };
-};
+  return quantities;
+}
+
+const quantityProperties = (quantities: Record<string, number>) =>
+  Object.fromEntries(Object.entries(quantities).map(([column, qty]) => [column, { number: qty }]));
 
 /** Notion page properties for one order. `titleProperty` is whatever the database calls its title. */
-export const orderProperties = (session: Session, titleProperty: string, timeZone = TIME_ZONE) => {
+export const orderProperties = (session: OrderSession, titleProperty: string, timeZone = TIME_ZONE) => {
   const lines = orderLines(session.metadata);
-  const { quantities } = orderCounts(session);
   const name = session.metadata?.name || session.customer_details?.name || "(no name)";
   const email = session.customer_details?.email || session.customer_email || null;
-  // Notion groups rows by this day, and the totals database keys on it
-  const ordered = orderDay(session, timeZone);
 
   return {
     [titleProperty]: { title: [{ text: { content: name.slice(0, 2000) } }] },
     Email: { email },
     Items: text(itemsText(lines)),
-    ...Object.fromEntries(Object.entries(quantities).map(([column, qty]) => [column, { number: qty }])),
+    ...quantityProperties(countQuantities(lines)),
     Total: { number: session.amount_total != null ? session.amount_total / 100 : null },
-    Ordered: { date: { start: ordered } },
+    Ordered: { date: { start: orderDay(session, timeZone) } },
     "Picked up": { checkbox: false },
     "Stripe session": text(session.id),
   };
 };
 
-// ---------- the totals database: one row per day ----------
-
 /** The totals database's columns besides its title (the day, as YYYY-MM-DD). */
 export const TOTALS_SCHEMA: Record<string, unknown> = {
   Date: { date: {} },
   Orders: { number: { format: "number" } },
-  ...Object.fromEntries(quantityColumns().map((name) => [name, { number: { format: "number" } }])),
+  ...quantitySchema,
   Revenue: { number: { format: "dollar" } },
 };
 
-export type DayTotals = { orders: number; quantities: Record<string, number>; revenue: number };
+type DayTotals = { orders: number; quantities: Record<string, number>; revenue: number };
 
-type NotionProperty = { type: string; number?: number | null };
+export type PickupRow = {
+  properties: Record<string, { number?: number | null; rich_text?: { plain_text: string }[] }>;
+};
 
-/**
- * Adds up a day's orders, given their rows in the pickup database (as Notion returns them)
- * and the order that just came in. The new order is counted from the session rather than its
- * row, since Notion's query can lag a moment behind a page it just created; its row, if the
- * query did return it, is skipped by session ID so it isn't counted twice. Every other order
- * counts once too, even if a duplicate row of it slipped in (see recordOrder in notion.ts).
- */
+/** Include the incoming order even if Notion has not indexed it yet. Count each Stripe session once. */
 export const dayTotals = (
-  rows: { properties: Record<string, NotionProperty & { rich_text?: { plain_text: string }[] }> }[],
-  latest: Pick<Session, "id" | "metadata" | "amount_total">,
+  rows: PickupRow[],
+  latest: Pick<OrderSession, "id" | "metadata" | "amount_total">,
 ): DayTotals => {
-  const own = orderCounts(latest);
-  const totals: DayTotals = { orders: 1, quantities: { ...own.quantities }, revenue: own.total };
+  const totals = {
+    orders: 1,
+    quantities: countQuantities(orderLines(latest.metadata)),
+    revenue: (latest.amount_total ?? 0) / 100,
+  };
   const counted = new Set([latest.id]);
   for (const row of rows) {
     const session = row.properties["Stripe session"]?.rich_text?.map((t) => t.plain_text).join("") ?? "";
@@ -142,7 +137,7 @@ export const dayTotals = (
     if (session && counted.has(session)) continue;
     if (session) counted.add(session);
     totals.orders += 1;
-    for (const column of quantityColumns()) totals.quantities[column] += row.properties[column]?.number ?? 0;
+    for (const column of quantityColumns) totals.quantities[column] += row.properties[column]?.number ?? 0;
     totals.revenue += row.properties.Total?.number ?? 0;
   }
   return totals;
@@ -153,6 +148,6 @@ export const totalsProperties = (day: string, totals: DayTotals, titleProperty: 
   [titleProperty]: { title: [{ text: { content: day } }] },
   Date: { date: { start: day } },
   Orders: { number: totals.orders },
-  ...Object.fromEntries(Object.entries(totals.quantities).map(([column, qty]) => [column, { number: qty }])),
+  ...quantityProperties(totals.quantities),
   Revenue: { number: Math.round(totals.revenue * 100) / 100 },
 });

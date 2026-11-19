@@ -1,8 +1,9 @@
 import type Stripe from "stripe";
-import { MAX_QTY } from "./cart.ts";
+import { lineKey, MAX_QTY } from "./cart.ts";
 import { COLUMNS, itemsText, type OrderLine } from "./order-notion.ts";
-import { MERCH_INTEGRATION, type ProductIds } from "./stripe-products.ts";
+import type { ProductIds } from "./stripe-products.ts";
 
+const MERCH_INTEGRATION = "purdue_hackers_merch";
 const UUID = /^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i;
 const isObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -25,13 +26,16 @@ export function parseOrder(input: unknown) {
     const product = COLUMNS.find(({ item }) => item === line.item);
     if (!product) return "Unknown item";
     const size = line.size ?? null;
-    if (product.sizes.length && (typeof size !== "string" || !product.sizes.includes(size))) return `Pick a size for the ${product.item}`;
-    if (!product.sizes.length && size !== null) return `The ${product.item} has one size`;
+    if (product.sizes.length) {
+      if (typeof size !== "string" || !product.sizes.includes(size)) return `Pick a size for the ${product.item}`;
+    } else if (size !== null) {
+      return `The ${product.item} has one size`;
+    }
     if (typeof line.qty !== "number" || !Number.isInteger(line.qty) || line.qty < 1) return "Invalid quantity";
-    const key = `${product.item}:${size ?? ""}`;
+    const key = lineKey({ item: product.item, size });
     const qty = (merged.get(key)?.qty ?? 0) + line.qty;
     if (qty > MAX_QTY) return `Quantity must be 1–${MAX_QTY}`;
-    merged.set(key, { item: product.item, size: typeof size === "string" ? size : null, qty });
+    merged.set(key, { item: product.item, size, qty });
   }
   const lines = [...merged.values()];
   const metadata = {

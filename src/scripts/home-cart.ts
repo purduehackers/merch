@@ -2,7 +2,7 @@
 // many of the item (in the picked size) into the cart, on top of any already there. The cart
 // button in the shop header opens a drawer to change quantities or remove lines, and the main
 // button becomes checkout once there's something in it. /preorder picks the cart up.
-import { CART_EVENT, MAX_QTY, addToCart, cartTotal, itemCount, lineQty, money, readCart, writeCart, type Cart } from "./cart";
+import { MAX_QTY, addToCart, cartTotal, itemCount, lineQty, money, onCartChange, readCart, writeCart, type Cart } from "./cart";
 import { renderCartLines } from "./cart-view";
 import { readPrices } from "./preorder-data.js";
 
@@ -22,7 +22,7 @@ const init = () => {
   const empty = shop.querySelector<HTMLElement>("[data-cart-empty]");
   const foot = shop.querySelector<HTMLElement>("[data-cart-foot]");
   const total = shop.querySelector<HTMLOutputElement>("[data-cart-total]");
-  let cart: Cart = readCart();
+  let cart: Cart;
   const pending = new Map<string, number>(); // the stepper's count, per item
   const flash = new Map<string, number>(); // "added" timers, per item
 
@@ -52,7 +52,8 @@ const init = () => {
     button.classList.remove("is-added");
   };
 
-  const render = () => {
+  const render = (nextCart: Cart) => {
+    cart = nextCart;
     const items = itemCount(cart);
     for (const button of shop.querySelectorAll<HTMLButtonElement>("[data-add]")) renderBuy(button.dataset.add!);
     for (const state of shop.querySelectorAll<HTMLElement>("[data-cart-state]")) {
@@ -75,7 +76,7 @@ const init = () => {
       }
     }
 
-    if (lines) renderCartLines(lines, cart, prices, (next) => writeCart(next));
+    if (lines) renderCartLines(lines, cart, prices);
     if (empty) empty.hidden = items > 0;
     if (foot) foot.hidden = items === 0;
     const subtotal = cartTotal(cart, prices);
@@ -85,19 +86,11 @@ const init = () => {
   // any change to the cart (here, in the drawer, or another tab) lands here
   const controller = new AbortController();
   const { signal } = controller;
-  window.addEventListener(CART_EVENT, (event) => {
-    cart = (event as CustomEvent<Cart>).detail;
-    render();
-  }, { signal });
-  window.addEventListener("storage", () => {
-    cart = readCart();
-    render();
-  }, { signal });
+  onCartChange(render, signal);
   // back from /preorder through history: the cart may have changed there
   window.addEventListener("pageshow", (event) => {
     if (!event.persisted) return;
-    cart = readCart();
-    render();
+    render(readCart());
   }, { signal });
   document.addEventListener("astro:before-swap", () => {
     controller.abort();
@@ -161,7 +154,7 @@ const init = () => {
     renderBuy(item);
   });
 
-  render();
+  render(readCart());
 };
 
 document.addEventListener("astro:page-load", init);

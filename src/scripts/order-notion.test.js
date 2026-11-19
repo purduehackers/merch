@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ORDER_SCHEMA, itemsText, orderLines, orderProperties, quantityColumns } from "./order-notion.ts";
+import { ORDER_SCHEMA, TOTALS_SCHEMA, dayTotals, itemsText, orderDay, orderLines, orderProperties, quantityColumns, totalsProperties } from "./order-notion.ts";
 
 test("orderLines reads the compact lines metadata", () => {
   assert.deepEqual(orderLines({ lines: "shirt:M:2,shirt:L:1,tote::3" }), [
@@ -20,8 +20,8 @@ test("orderLines falls back to the readable items summary", () => {
 });
 
 test("every quantity column is in the schema as a number", () => {
-  assert.equal(quantityColumns().length, 13);
-  for (const column of quantityColumns()) assert.deepEqual(ORDER_SCHEMA[column], { number: { format: "number" } });
+  assert.equal(quantityColumns.length, 13);
+  for (const column of quantityColumns) assert.deepEqual(ORDER_SCHEMA[column], { number: { format: "number" } });
 });
 
 test("orderProperties fills the row for one order", () => {
@@ -55,14 +55,12 @@ test("billing name is the fallback when the form name is missing", () => {
   assert.equal(itemsText([{ item: "tote", size: null, qty: 1 }]), "1× tote");
 });
 
-import { TOTALS_SCHEMA, dayTotals, orderDay, totalsProperties } from "./order-notion.ts";
-
 // a pickup-database row as Notion returns it
 const row = (session, counts, total) => ({
   properties: {
     "Stripe session": { type: "rich_text", rich_text: [{ plain_text: session }] },
     Total: { type: "number", number: total },
-    ...Object.fromEntries(quantityColumns().map((c) => [c, { type: "number", number: counts[c] ?? 0 }])),
+    ...Object.fromEntries(quantityColumns.map((c) => [c, { type: "number", number: counts[c] ?? 0 }])),
   },
 });
 
@@ -97,7 +95,7 @@ test("dayTotals counts a duplicated order once, and rows without a session each 
 });
 
 test("totalsProperties writes one day's row", () => {
-  const props = totalsProperties("2026-11-16", { orders: 2, quantities: Object.fromEntries(quantityColumns().map((c) => [c, c === "Tote" ? 4 : 0])), revenue: 60.004 }, "Day");
+  const props = totalsProperties("2026-11-16", { orders: 2, quantities: Object.fromEntries(quantityColumns.map((c) => [c, c === "Tote" ? 4 : 0])), revenue: 60.004 }, "Day");
   assert.deepEqual(props.Day, { title: [{ text: { content: "2026-11-16" } }] });
   assert.deepEqual(props.Date, { date: { start: "2026-11-16" } });
   assert.equal(props.Orders.number, 2);

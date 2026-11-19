@@ -15,29 +15,21 @@ async function readOrder(request: Request) {
     return new Response("Expected JSON", { status: 415 });
   if (Number(request.headers.get("content-length")) > maxRequestBytes)
     return new Response("Order too large", { status: 413 });
-  const reader = request.body?.getReader();
-  if (!reader) return new Response("Missing order", { status: 400 });
+  if (!request.body) return new Response("Missing order", { status: 400 });
   const decoder = new TextDecoder("utf-8", { fatal: true });
   let json = "";
   let length = 0;
   try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      length += value.byteLength;
-      if (length > maxRequestBytes) {
-        await reader.cancel();
-        return new Response("Order too large", { status: 413 });
-      }
-      json += decoder.decode(value, { stream: true });
+    for await (const chunk of request.body) {
+      length += chunk.byteLength;
+      if (length > maxRequestBytes) return new Response("Order too large", { status: 413 });
+      json += decoder.decode(chunk, { stream: true });
     }
     const order = parseOrder(JSON.parse(json + decoder.decode()));
     if (typeof order === "string") return new Response(order, { status: 400 });
     return order;
   } catch {
     return new Response("Invalid order", { status: 400 });
-  } finally {
-    reader.releaseLock();
   }
 }
 
@@ -48,16 +40,17 @@ export const POST: APIRoute = async ({ request, url }) => {
   const order = await readOrder(request);
   if (order instanceof Response) return order;
   const { stripe, productIds, publishableKey, webhookSecret, live } = stripeConfig(getSecret);
-  if (!stripe || !publishableKey || (live && (!webhookSecret || !getSecret("NOTION_TOKEN") || !getSecret("NOTION_ORDERS_DATABASE_ID"))))
-    return new Response("Checkout is unavailable", { status: 503 });
+  const canFulfill = !live || (webhookSecret && getSecret("NOTION_TOKEN") && getSecret("NOTION_ORDERS_DATABASE_ID"));
+  if (!stripe || !publishableKey || !canFulfill) return new Response("Checkout is unavailable", { status: 503 });
 
   try {
     const prices = await getStripePrices(stripe, productIds);
     const quantities = new Map<string, number>();
     let total = 0;
     for (const { item, qty } of order.lines) {
-      quantities.set(prices[item].id, (quantities.get(prices[item].id) ?? 0) + qty);
-      total += prices[item].amount * qty;
+      const { id, amount } = prices[item];
+      quantities.set(id, (quantities.get(id) ?? 0) + qty);
+      total += amount * qty;
     }
     if (total !== order.expectedTotal) return new Response("Prices changed. Reload your cart.", { status: 409 });
 

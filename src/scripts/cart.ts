@@ -10,11 +10,13 @@ export const MAX_QTY = 10;
 
 const KEY = "ph-w2026-cart";
 /** fired on window whenever the cart is saved, so every view of it can redraw */
-export const CART_EVENT = "ph:cart-change";
+const CART_EVENT = "ph:cart-change";
+const LAST_CHECKOUT = "ph-merch-checkout";
 
 const clampQty = (qty: number) => Math.min(MAX_QTY, Math.max(0, Math.floor(qty)));
 
-export const lineKey = (line: Pick<CartLine, "item" | "size">) => (line.size ? `${line.item}:${line.size}` : line.item);
+export const lineKey = ({ item, size }: { item: string; size?: string | null }) =>
+  size ? `${item}:${size}` : item;
 
 const parse = (raw: unknown): Cart => {
   if (!raw || typeof raw !== "object") return { lines: [] };
@@ -65,7 +67,26 @@ export const writeCart = (cart: Cart) => {
   window.dispatchEvent(new CustomEvent(CART_EVENT, { detail: cart }));
 };
 
-export const clearCart = () => writeCart({ lines: [] });
+export function onCartChange(render: (cart: Cart) => void, signal: AbortSignal) {
+  window.addEventListener(CART_EVENT, (event) => render((event as CustomEvent<Cart>).detail), { signal });
+  window.addEventListener("storage", () => render(readCart()), { signal });
+}
+
+export function rememberCheckout(id: string, cart: Cart) {
+  try {
+    sessionStorage.setItem(LAST_CHECKOUT, JSON.stringify({ id, cart: JSON.stringify(cart.lines) }));
+  } catch { /* Payment also works when storage is blocked. */ }
+}
+
+/** A saved confirmation link must never empty a later cart. */
+export function clearPaidCart(sessionId: string) {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(LAST_CHECKOUT) ?? "null");
+    if (saved?.id !== sessionId) return;
+    if (saved.cart === JSON.stringify(readCart().lines)) writeCart({ lines: [] });
+    sessionStorage.removeItem(LAST_CHECKOUT);
+  } catch { /* The payment is still confirmed if storage is unavailable. */ }
+}
 
 /** adds qty to the line for item + size (making it if needed), up to MAX_QTY */
 export const addToCart = (cart: Cart, item: string, size: string | undefined, qty: number): Cart => {

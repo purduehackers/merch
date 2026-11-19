@@ -1,7 +1,6 @@
 import { loadStripe } from "@stripe/stripe-js/pure";
 import type { Appearance, StripeCheckoutForm } from "@stripe/stripe-js";
-import { cartTotal, clearCart, readCart } from "./cart";
-import { readPrices } from "./preorder-data.js";
+import { cartTotal, clearPaidCart, readCart, rememberCheckout } from "./cart";
 
 const FONT_BASE = "https://f3ibyzhjurhjiwis.public.blob.vercel-storage.com";
 const fonts = [
@@ -44,8 +43,6 @@ const appearance: Appearance = {
   },
 };
 
-const LAST_CHECKOUT = "ph-merch-checkout";
-
 async function showPaymentStatus(sessionId: string, checkout: HTMLElement, signal: AbortSignal) {
   const message = checkout.querySelector<HTMLElement>("[data-checkout-message]")!;
   const check = checkout.querySelector<HTMLAnchorElement>("[data-checkout-check]")!;
@@ -58,18 +55,10 @@ async function showPaymentStatus(sessionId: string, checkout: HTMLElement, signa
     switch (state) {
       case "paid":
         message.textContent = "payment received. thanks for preordering!";
-        // A saved confirmation link must never empty a later cart.
-        try {
-          const saved = JSON.parse(sessionStorage.getItem(LAST_CHECKOUT) ?? "null");
-          if (saved?.id === sessionId) {
-            if (saved.cart === JSON.stringify(readCart().lines)) clearCart();
-            sessionStorage.removeItem(LAST_CHECKOUT);
-          }
-        } catch { /* Payment confirmation also works with storage blocked. */ }
-        break;
+        clearPaidCart(sessionId);
+        return;
       case "pending":
         message.textContent = "your payment is still processing. check here again before placing another order.";
-        check.hidden = false;
         break;
       case "failed":
       case "expired":
@@ -77,7 +66,6 @@ async function showPaymentStatus(sessionId: string, checkout: HTMLElement, signa
         message.textContent = state === "failed" ? "your payment failed." : "this checkout did not complete a payment.";
         check.textContent = "return to your cart";
         check.href = "/preorder";
-        check.hidden = false;
         break;
       default:
         throw new Error();
@@ -85,41 +73,39 @@ async function showPaymentStatus(sessionId: string, checkout: HTMLElement, signa
   } catch {
     if (signal.aborted) return;
     message.textContent = "we couldn’t check this payment. check again or email phackers@purdue.edu before placing another order.";
-    check.hidden = false;
   }
+  check.hidden = false;
 }
 
-function initCheckout() {
-  const form = document.querySelector<HTMLFormElement>(".preorder__form");
-  const checkout = document.querySelector<HTMLElement>(".preorder__checkout");
-  if (!form || !checkout || form.dataset.checkoutReady) return;
-  form.dataset.checkoutReady = "true";
-
-  const error = form.querySelector<HTMLElement>("[data-preorder-error]")!;
-  const message = checkout.querySelector<HTMLElement>("[data-checkout-message]")!;
-  const back = checkout.querySelector<HTMLButtonElement>("[data-checkout-back]")!;
-  const prices = readPrices();
-  let mounted: StripeCheckoutForm | undefined;
-  let attempt = "";
-  let previousOrder = "";
-  const controller = new AbortController();
-  const { signal } = controller;
-  document.addEventListener("astro:before-swap", () => {
-    controller.abort();
-    mounted?.destroy();
-  }, { once: true });
-
+export function initCheckout(
+  form: HTMLFormElement,
+  checkout: HTMLElement,
+  prices: Record<string, number>,
+  signal: AbortSignal,
+) {
   const sessionId = new URLSearchParams(location.search).get("session_id");
   if (sessionId !== null) {
     void showPaymentStatus(sessionId, checkout, signal);
     return;
   }
 
-  back.addEventListener("click", () => {
+  const error = form.querySelector<HTMLElement>("[data-preorder-error]")!;
+  const message = checkout.querySelector<HTMLElement>("[data-checkout-message]")!;
+  const back = checkout.querySelector<HTMLButtonElement>("[data-checkout-back]")!;
+  let mounted: StripeCheckoutForm | undefined;
+  let attempt = "";
+  let previousOrder = "";
+  signal.addEventListener("abort", () => mounted?.destroy(), { once: true });
+
+  function showCart() {
     mounted?.destroy();
     mounted = undefined;
     checkout.hidden = true;
     form.hidden = false;
+  }
+
+  back.addEventListener("click", () => {
+    showCart();
     form.querySelector<HTMLInputElement>('[name="name"]')?.focus();
   });
 
@@ -171,9 +157,7 @@ function initCheckout() {
       if (signal.aborted) return;
       if (loaded.type !== "success") throw new Error();
 
-      try {
-        sessionStorage.setItem(LAST_CHECKOUT, JSON.stringify({ id: session.id, cart: JSON.stringify(cart.lines) }));
-      } catch { /* Stripe can take payment even when browser storage is blocked. */ }
+      rememberCheckout(session.id, cart);
       const returnUrl = new URL("/preorder", location.origin);
       returnUrl.searchParams.set("session_id", session.id);
       form.hidden = true;
@@ -199,10 +183,7 @@ function initCheckout() {
       mounted.mount("#checkout-form");
     } catch {
       if (signal.aborted) return;
-      mounted?.destroy();
-      mounted = undefined;
-      form.hidden = false;
-      checkout.hidden = true;
+      showCart();
       error.textContent ||= "couldn’t open checkout. please try again.";
     } finally {
       form.inert = false;
@@ -210,6 +191,3 @@ function initCheckout() {
     }
   });
 }
-
-document.addEventListener("astro:page-load", initCheckout);
-initCheckout();

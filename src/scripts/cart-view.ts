@@ -2,7 +2,7 @@
 // Used by the homepage cart drawer and /preorder; each styles .cart-line for its own page.
 // A line never goes below 1 with "−" (the trash button removes it), and the last line in the
 // cart can't be removed, so these controls never empty the cart.
-import { MAX_QTY, lineKey, money, setLineQty, type Cart } from "./cart";
+import { MAX_QTY, lineKey, money, setLineQty, writeCart, type Cart } from "./cart";
 import { products } from "./preorder-items-data";
 
 export const productName = (id: string) => products.find((p) => p.id === id)?.name ?? id;
@@ -43,7 +43,6 @@ export const renderCartLines = (
   list: HTMLElement,
   cart: Cart,
   prices: Record<string, number>,
-  onChange: (cart: Cart) => void,
 ) => {
   // redrawing replaces the buttons, so put keyboard focus back where it was
   // (only focus inside this list; a redraw from elsewhere must not pull focus here)
@@ -79,7 +78,7 @@ export const renderCartLines = (
       const stepper = qtyStepper(line.qty, label, key);
       stepper.addEventListener("click", (event) => {
         const step = (event.target as Element).closest<HTMLButtonElement>("[data-step]");
-        if (step) onChange(setLineQty(cart, key, Math.max(1, line.qty + Number(step.dataset.step))));
+        if (step) writeCart(setLineQty(cart, key, Math.max(1, line.qty + Number(step.dataset.step))));
       });
 
       const price = document.createElement("output");
@@ -96,7 +95,7 @@ export const renderCartLines = (
       remove.setAttribute("aria-label", `remove ${label}`);
       remove.title = last ? "your cart needs at least one item" : `remove ${label}`;
       remove.addEventListener("click", () => {
-        if (cart.lines.length > 1) onChange(setLineQty(cart, key, 0));
+        if (cart.lines.length > 1) writeCart(setLineQty(cart, key, 0));
       });
 
       row.append(thumb, text, stepper, price, remove);
