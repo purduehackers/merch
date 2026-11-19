@@ -9,7 +9,7 @@ Set these variables on the Vercel `merch` project. Production uses the Afterhour
 | Variable | Production | Preview or local |
 | --- | --- | --- |
 | `STRIPE_RESTRICTED_KEY` or `STRIPE_SECRET_KEY` | Live server key | Sandbox server key |
-| `PUBLIC_STRIPE_PUBLISHABLE_KEY` | Live publishable key | Sandbox publishable key |
+| `STRIPE_PUBLISHABLE_KEY` (Vercel integration) or `PUBLIC_STRIPE_PUBLISHABLE_KEY` | Live publishable key | Sandbox publishable key |
 | `STRIPE_WEBHOOK_SECRET` | Signing secret for the live merch endpoint | Signing secret for the sandbox endpoint or local CLI listener |
 | `NOTION_TOKEN` | Integration with access to the pickup database | Only needed for a sandbox pickup database |
 | `NOTION_ORDERS_DATABASE_ID` | Merch items/pickup form | Use `NOTION_TEST_ORDERS_DATABASE_ID` for test orders |

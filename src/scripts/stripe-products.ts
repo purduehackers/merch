@@ -22,7 +22,7 @@ export function stripeConfig(get: ReadEnv) {
   const live = get("VERCEL_ENV") === "production";
   const mode = live ? "live" : "test";
   const secretKey = (!live && get("STRIPE_SECRET_TEST_KEY")) || get("STRIPE_RESTRICTED_KEY") || get("STRIPE_SECRET_KEY") || "";
-  const publicKey = (!live && get("PUBLIC_STRIPE_TEST_KEY")) || get("PUBLIC_STRIPE_PUBLISHABLE_KEY") || "";
+  const publicKey = (!live && get("PUBLIC_STRIPE_TEST_KEY")) || get("PUBLIC_STRIPE_PUBLISHABLE_KEY") || get("STRIPE_PUBLISHABLE_KEY") || "";
   const webhookSecret = (!live && get("STRIPE_WEBHOOK_TEST_SECRET")) || get("STRIPE_WEBHOOK_SECRET");
   const validSecret = secretKey.startsWith(`rk_${mode}_`) || secretKey.startsWith(`sk_${mode}_`);
 

@@ -45,6 +45,19 @@ test("deployment selects and validates keys and sandbox ignores an attempted liv
   assert.equal(stripeConfig(read({ VERCEL_ENV: "production", STRIPE_SECRET_KEY: "sk_test_example" })).stripe, null);
 });
 
+test("accepts Vercel's managed Stripe keys only in their matching environment", () => {
+  const sandbox = { STRIPE_SECRET_KEY: "sk_test_example", STRIPE_PUBLISHABLE_KEY: "pk_test_example" };
+  const live = { STRIPE_SECRET_KEY: "sk_live_example", STRIPE_PUBLISHABLE_KEY: "pk_live_example" };
+  for (const [environment, matching, mismatched] of [["preview", sandbox, live], ["production", live, sandbox]]) {
+    const valid = stripeConfig(read({ ...matching, VERCEL_ENV: environment }));
+    assert.ok(valid.stripe);
+    assert.equal(valid.publishableKey, matching.STRIPE_PUBLISHABLE_KEY);
+    const invalid = stripeConfig(read({ ...mismatched, VERCEL_ENV: environment }));
+    assert.equal(invalid.stripe, null);
+    assert.equal(invalid.publishableKey, null);
+  }
+});
+
 test("only trusted deployment or local origins can start a session", () => {
   assert.ok(isStoreOrigin("http://localhost:4321", read({})));
   assert.ok(isStoreOrigin("https://drops.purduehackers.com", read({ VERCEL_ENV: "production" })));
