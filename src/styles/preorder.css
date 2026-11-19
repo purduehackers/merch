@@ -125,8 +125,12 @@ body {
   color: rgb(255 255 255 / 50%);
   font-family: "PolySans Slim", "PolySans Neutral", Arial, sans-serif;
   font-size: calc(20 * var(--s));
-  line-height: 0.9;
+  line-height: 1.2;
 }
+
+.preorder__notice p { margin: 0 0 0.4em; }
+.preorder__notice summary { cursor: pointer; }
+.preorder__notice details[open] p { margin-top: 0.5em; }
 
 .preorder__notice a {
   color: inherit;
@@ -160,12 +164,10 @@ body {
 
 .preorder__contact label {
   display: grid;
-  /* label -> box spacing; matches "select items" -> cards (26.1 - 19.2 legend height) */
   gap: calc(6.9 * var(--s));
 }
 
-.preorder__contact label > span,
-.preorder__items legend {
+.preorder__contact label > span {
   padding: 0;
   color: #fff;
   font-size: calc(24 * var(--s));
@@ -189,90 +191,6 @@ body {
 .preorder__next:focus-visible {
   outline: calc(3 * var(--s)) solid #fff;
   outline-offset: calc(3 * var(--s));
-}
-
-.preorder__items {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: calc(11.995 * var(--s));
-  box-sizing: border-box;
-  margin: calc(52.5 * var(--s)) 0 0;
-  padding: calc(26.1 * var(--s)) 0 0;
-  border: 0;
-}
-
-.preorder__items legend {
-  position: absolute;
-  top: 0;
-  left: 0;
-  margin: 0;
-}
-
-.preorder__item {
-  position: relative;
-  display: block;
-  aspect-ratio: 1;
-  background: #fffdf7;
-  cursor: pointer;
-}
-
-.preorder__item > img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  transition: opacity 120ms ease;
-}
-
-.preorder__item input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-/* keyboard focus only, so a mouse click doesn't leave a ring behind after deselecting */
-.preorder__item:has(input:focus-visible) {
-  outline: calc(2 * var(--s)) solid #fff;
-  outline-offset: calc(3 * var(--s));
-}
-
-/* selected: yellow ring + check badge */
-.preorder__item:has(input:checked) {
-  outline: calc(4 * var(--s)) solid #ffcd38;
-  outline-offset: calc(3 * var(--s));
-}
-
-.preorder__item::after {
-  content: "";
-  position: absolute;
-  top: calc(8 * var(--s));
-  right: calc(8 * var(--s));
-  width: calc(28 * var(--s));
-  height: calc(28 * var(--s));
-  border-radius: 50%;
-  background: #ffcd38 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 65% no-repeat;
-  opacity: 0;
-  transform: scale(0.6);
-  transition: opacity 120ms ease, transform 120ms ease;
-  pointer-events: none;
-}
-
-.preorder__item:has(input:checked)::after {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.preorder__item-name {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
 }
 
 /* summary + total are pushed to the bottom; new rows grow upward so the total never moves.
@@ -527,3 +445,31 @@ body {
 .preorder__letter--e2 span { transform: rotate(-6.18deg); }
 .preorder__letter--r3 { --x: 576.8; --y: 783.532; --bw: 441.072; --bh: 490.024; }
 .preorder__letter--r3 span { transform: rotate(-33.04deg); }
+
+@media (max-width: 700px) {
+  .preorder {
+    --s: min(100vw / 520, 1.1px);
+    overflow-y: auto;
+  }
+
+  .preorder__panel {
+    --gutter: 5vw;
+    width: 100%;
+    min-height: 100%;
+    height: auto;
+    padding-block: 1.5rem;
+  }
+
+  .preorder__word-art { display: none; }
+  .preorder__notice { font-size: 1rem; }
+  .preorder__form { gap: 0.6rem; }
+  .preorder__contact { grid-template-columns: 1fr; }
+  .preorder__contact input { min-height: 2.75rem; font-size: 1rem; }
+  .preorder__summary { overflow: visible; }
+  .preorder__next { min-height: 2.75rem; }
+}
+
+@media (min-width: 701px) {
+  .preorder__panel:has(details[open]) { overflow-y: auto; }
+  .preorder__panel:has(details[open]) .preorder__form { min-height: max-content; }
+}

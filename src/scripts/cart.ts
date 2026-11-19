@@ -96,7 +96,13 @@ export const lineQty = (cart: Cart, item: string, size?: string) =>
 export const itemCount = (cart: Cart, item?: string) =>
   cart.lines.reduce((sum, line) => (item && line.item !== item ? sum : sum + line.qty), 0);
 
-export const cartTotal = (cart: Cart, prices: Record<string, number>) =>
-  cart.lines.reduce((sum, line) => sum + (prices[line.item] ?? 0) * line.qty, 0);
+export function cartTotal(cart: Cart, prices: Record<string, number>): number | null {
+  let total = 0;
+  for (const { item, qty } of cart.lines) {
+    if (!Object.hasOwn(prices, item)) return null;
+    total += prices[item] * qty;
+  }
+  return total;
+}
 
 export const money = (amount: number) => `$${Number.isInteger(amount) ? amount : amount.toFixed(2)}`;

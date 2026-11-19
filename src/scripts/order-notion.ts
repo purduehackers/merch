@@ -36,7 +36,7 @@ export type OrderLine = { item: string; size: string | null; qty: number };
 /**
  * The order's lines from the session metadata. `lines` ("shirt:M:2,tote::1") is what
  * /api/checkout writes; `items` ("2× shirt (M), 1× tote") is the readable summary, used for
- * sessions made before `lines` existed.
+ * older sessions, including single-unit orders that did not include a quantity.
  */
 export const orderLines = (metadata: Record<string, string> | null | undefined): OrderLine[] => {
   if (metadata?.lines) {
@@ -49,9 +49,9 @@ export const orderLines = (metadata: Record<string, string> | null | undefined):
   }
   return (metadata?.items ?? "")
     .split(",")
-    .map((part) => part.trim().match(/^(\d+)× ([a-z ]+?)(?: \(([A-Z]+)\))?$/))
+    .map((part) => part.trim().match(/^(?:(\d+)× )?([a-z]+)(?: \(([A-Z]+)\))?$/))
     .filter((match): match is RegExpMatchArray => match !== null)
-    .map(([, qty, item, size]) => ({ item, size: size ?? null, qty: Number(qty) }));
+    .map(([, qty = "1", item, size]) => ({ item, size: size ?? null, qty: Number(qty) }));
 };
 
 /** the readable summary for the Items column */

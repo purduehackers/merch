@@ -84,7 +84,7 @@ export const renderCartLines = (
 
       const price = document.createElement("output");
       price.className = "cart-line__price";
-      price.value = money((prices[line.item] ?? 0) * line.qty);
+      price.value = Object.hasOwn(prices, line.item) ? money(prices[line.item] * line.qty) : "—";
 
       const remove = document.createElement("button");
       remove.type = "button";

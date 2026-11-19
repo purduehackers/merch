@@ -19,9 +19,9 @@ const init = () => {
   const render = (cart: Cart) => {
     renderCartLines(list, cart, prices, (updated) => writeCart(updated));
     if (empty) empty.hidden = cart.lines.length > 0;
-    // no preordering an empty cart
-    if (next) next.disabled = cart.lines.length === 0;
-    if (total) total.value = cartTotal(cart, prices).toFixed(2);
+    const subtotal = cartTotal(cart, prices);
+    if (next) next.disabled = cart.lines.length === 0 || subtotal === null;
+    if (total) total.value = subtotal === null ? "price unavailable · reload to retry" : subtotal.toFixed(2);
   };
 
   const controller = new AbortController();

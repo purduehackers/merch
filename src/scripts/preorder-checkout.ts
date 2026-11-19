@@ -1,43 +1,15 @@
-// Stripe embedded payment form for /preorder.
-// Stripe.js always comes from js.stripe.com (never bundled: PCI requirement). It's ~300 KB, so
-// only checkout pages load it, starting as soon as one opens rather than in every page's head.
+import { loadStripe } from "@stripe/stripe-js/pure";
+import type { Appearance, StripeCheckoutForm } from "@stripe/stripe-js";
+import { cartTotal, clearCart, readCart } from "./cart";
+import { readPrices } from "./preorder-data.js";
 
-import { clearCart, readCart } from "./cart";
-
-type CheckoutForm = {
-  mount: (selector: string) => void;
-  unmount?: () => void;
-  destroy?: () => void;
-  on: (event: "confirm", handler: (event: unknown) => void) => void;
-};
-type CheckoutFormSdk = {
-  createForm: (options: { layout: "expanded" }) => CheckoutForm;
-  loadActions: () => Promise<
-    | { type: "success"; actions: { confirm: (options: { formConfirmEvent: unknown }) => Promise<unknown> } }
-    | { type: "error"; error: { message: string } }
-  >;
-};
-type StripeInstance = {
-  initCheckoutFormSdk: (options: { clientSecret: Promise<string>; appearance: object; fonts?: object[] }) => CheckoutFormSdk;
-};
-declare global {
-  interface Window {
-    Stripe?: (publishableKey: string) => StripeInstance;
-  }
-}
-
-// Matches preorder.css: black page, square inputs, PolySans, cream button like "next",
-// yellow (#ffcd38) selection accent like the item cards.
-// The form SDK only accepts theme/labels/inputs/variables (no `rules`), and typed text,
-// headings and address suggestions all take colorText. So the inputs are dark with white
-// text: white inputs made everything typed into them white on white.
 const FONT_BASE = "https://f3ibyzhjurhjiwis.public.blob.vercel-storage.com";
 const fonts = [
   { family: "PolySans Neutral", src: `url(${FONT_BASE}/PolySans-Neutral.woff2)`, weight: "400" },
   { family: "PolySans Slim", src: `url(${FONT_BASE}/PolySans-Slim.woff2)`, weight: "400" },
 ];
 
-const appearance = {
+const appearance: Appearance = {
   theme: "night",
   labels: "above",
   inputs: "spaced",
@@ -72,170 +44,172 @@ const appearance = {
   },
 };
 
-const STRIPE_JS = "https://js.stripe.com/dahlia/stripe.js";
-let stripeJs: Promise<NonNullable<Window["Stripe"]>> | null = null;
+const LAST_CHECKOUT = "ph-merch-checkout";
 
-const loadStripeJs = () => {
-  if (window.Stripe) return Promise.resolve(window.Stripe);
-  stripeJs ??= new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = STRIPE_JS;
-    script.async = true;
-    script.onload = () => (window.Stripe ? resolve(window.Stripe) : reject(new Error("Stripe.js loaded without Stripe")));
-    script.onerror = () => reject(new Error("Stripe.js didn't load"));
-    document.head.append(script);
-  });
-  // a failed load (offline, blocked) can be tried again on the next "next"
-  stripeJs.catch(() => (stripeJs = null));
-  return stripeJs;
-};
+async function showPaymentStatus(sessionId: string, checkout: HTMLElement, signal: AbortSignal) {
+  const message = checkout.querySelector<HTMLElement>("[data-checkout-message]")!;
+  const check = checkout.querySelector<HTMLAnchorElement>("[data-checkout-check]")!;
+  check.href = location.href;
+  try {
+    const query = new URLSearchParams({ session_id: sessionId });
+    const response = await fetch(`/api/checkout?${query}`, { signal, cache: "no-store" });
+    if (!response.ok) throw new Error();
+    const { state } = await response.json();
+    switch (state) {
+      case "paid":
+        message.textContent = "payment received. thanks for preordering!";
+        // A saved confirmation link must never empty a later cart.
+        try {
+          const saved = JSON.parse(sessionStorage.getItem(LAST_CHECKOUT) ?? "null");
+          if (saved?.id === sessionId) {
+            if (saved.cart === JSON.stringify(readCart().lines)) clearCart();
+            sessionStorage.removeItem(LAST_CHECKOUT);
+          }
+        } catch { /* Payment confirmation also works with storage blocked. */ }
+        break;
+      case "pending":
+        message.textContent = "your payment is still processing. check here again before placing another order.";
+        check.hidden = false;
+        break;
+      case "failed":
+      case "expired":
+      case "open":
+        message.textContent = state === "failed" ? "your payment failed." : "this checkout did not complete a payment.";
+        check.textContent = "return to your cart";
+        check.href = "/preorder";
+        check.hidden = false;
+        break;
+      default:
+        throw new Error();
+    }
+  } catch {
+    if (signal.aborted) return;
+    message.textContent = "we couldn’t check this payment. check again or email phackers@purdue.edu before placing another order.";
+    check.hidden = false;
+  }
+}
 
-const initCheckout = () => {
+function initCheckout() {
   const form = document.querySelector<HTMLFormElement>(".preorder__form");
   const checkout = document.querySelector<HTMLElement>(".preorder__checkout");
-  if (!form || !checkout) return;
-  // fetch it while the buyer fills in their name and email
-  loadStripeJs().catch(() => {});
+  if (!form || !checkout || form.dataset.checkoutReady) return;
+  form.dataset.checkoutReady = "true";
 
-  const error = form.querySelector<HTMLElement>("[data-preorder-error]");
-  const message = checkout.querySelector<HTMLElement>("[data-checkout-message]");
-  const back = checkout.querySelector<HTMLButtonElement>("[data-checkout-back]");
-  let mounted: CheckoutForm | null = null;
+  const error = form.querySelector<HTMLElement>("[data-preorder-error]")!;
+  const message = checkout.querySelector<HTMLElement>("[data-checkout-message]")!;
+  const back = checkout.querySelector<HTMLButtonElement>("[data-checkout-back]")!;
+  const prices = readPrices();
+  let mounted: StripeCheckoutForm | undefined;
+  let attempt = "";
+  let previousOrder = "";
+  const controller = new AbortController();
+  const { signal } = controller;
+  document.addEventListener("astro:before-swap", () => {
+    controller.abort();
+    mounted?.destroy();
+  }, { once: true });
 
-  const showForm = () => {
-    mounted?.unmount?.();
-    mounted?.destroy?.();
-    mounted = null;
+  const sessionId = new URLSearchParams(location.search).get("session_id");
+  if (sessionId !== null) {
+    void showPaymentStatus(sessionId, checkout, signal);
+    return;
+  }
+
+  back.addEventListener("click", () => {
+    mounted?.destroy();
+    mounted = undefined;
     checkout.hidden = true;
     form.hidden = false;
-  };
-
-  const showCheckout = (text = "") => {
-    if (message) message.textContent = text;
-    form.hidden = true;
-    checkout.hidden = false;
-  };
-
-  const fail = (text: string) => {
-    showForm();
-    if (error) error.textContent = text;
-  };
-
-  back?.addEventListener("click", showForm);
-
-  // one checkout start at a time: a double click on "next" used to create two Stripe
-  // sessions and mount two payment forms
-  let starting = false;
+    form.querySelector<HTMLInputElement>('[name="name"]')?.focus();
+  });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (starting) return;
-    starting = true;
-    form.setAttribute("aria-busy", "true");
-    try {
-      await startCheckout();
-    } finally {
-      starting = false;
-      form.removeAttribute("aria-busy");
+    if (form.inert || mounted || !form.reportValidity()) return;
+    const cart = readCart();
+    const total = cartTotal(cart, prices);
+    if (!cart.lines.length || total === null) {
+      error.textContent = "check your cart and reload to get the latest prices.";
+      return;
     }
-  });
 
-  const startCheckout = async () => {
-    if (error) error.textContent = "";
-    if (!form.reportValidity()) return;
-
-    // /preorder checks out the cart (with quantities); the lab pages still send one of each
-    // checked item, with sizes, as form fields.
     const data = new FormData(form);
-    const items = data.getAll("items").map(String);
-    const lines = items.length ? [] : readCart().lines;
-    if (!items.length && !lines.length) {
-      if (error) error.textContent = "your cart is empty";
-      return;
-    }
-    const order = items.length
-      ? { items, shirt_size: data.get("shirt_size"), sock_size: data.get("sock_size") }
-      : { lines };
-
-    let Stripe: NonNullable<Window["Stripe"]>;
-    try {
-      Stripe = await loadStripeJs();
-    } catch (loadError) {
-      console.error("Stripe.js error:", loadError);
-      fail("checkout isn't available right now");
-      return;
+    const order = {
+      lines: cart.lines,
+      name: data.get("name"),
+      email: data.get("email"),
+      expected_total: Math.round(total * 100),
+    };
+    const orderKey = JSON.stringify(order);
+    if (orderKey !== previousOrder) {
+      previousOrder = orderKey;
+      attempt = crypto.randomUUID();
     }
 
-    // The server picks test or live mode and returns the matching publishable key.
-    let session: { client_secret: string; publishable_key: string };
+    form.inert = true;
+    form.setAttribute("aria-busy", "true");
+    error.textContent = "";
+    message.textContent = "";
     try {
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...order,
-          name: data.get("name"),
-          email: data.get("email"),
-          return_path: location.pathname,
-        }),
+        body: JSON.stringify({ ...order, attempt }),
+        signal,
       });
-      if (!response.ok) throw new Error(await response.text());
-      session = await response.json();
-    } catch (startError) {
-      console.error("Checkout start error:", startError);
-      fail("couldn't start checkout, try again");
-      return;
-    }
-
-    showCheckout();
-    let loaded: Awaited<ReturnType<CheckoutFormSdk["loadActions"]>>;
-    try {
-      const sdk = Stripe(session.publishable_key).initCheckoutFormSdk({
-        clientSecret: Promise.resolve(session.client_secret),
-        appearance,
-        fonts,
-      });
-      mounted = sdk.createForm({ layout: "expanded" });
-      mounted.mount("#checkout-form");
-      loaded = await sdk.loadActions();
-    } catch (setupError) {
-      console.error("Checkout setup error:", setupError);
-      fail("couldn't start checkout, try again");
-      return;
-    }
-    if (loaded.type !== "success") {
-      fail("couldn't start checkout, try again");
-      return;
-    }
-    mounted.on("confirm", async (confirmEvent) => {
-      try {
-        await loaded.actions.confirm({ formConfirmEvent: confirmEvent });
-      } catch (confirmError) {
-        console.error("Payment confirmation error:", confirmError);
+      if (!response.ok) {
+        if (response.status === 409) error.textContent = "your order changed. reload to review the latest prices.";
+        if (response.status === 400) error.textContent = await response.text();
+        throw new Error();
       }
-    });
-  };
+      const session = await response.json();
+      const stripe = await loadStripe(session.publishable_key);
+      if (signal.aborted) return;
+      if (!stripe) throw new Error();
+      const sdk = stripe.initCheckoutFormSdk({ clientSecret: session.client_secret, appearance, fonts });
+      const loaded = await sdk.loadActions();
+      if (signal.aborted) return;
+      if (loaded.type !== "success") throw new Error();
 
-  // Back from Stripe's return_url: show the result of the session.
-  const sessionId = new URLSearchParams(location.search).get("session_id");
-  if (sessionId) {
-    if (back) back.hidden = true;
-    showCheckout("checking your payment…");
-    fetch(`/api/checkout?session_id=${encodeURIComponent(sessionId)}`)
-      .then((response) => (response.ok ? response.json() : Promise.reject()))
-      .then(({ status }: { status: string }) => {
-        if (status === "complete") {
-          clearCart();
-          showCheckout("thanks! your preorder is in. a receipt is on its way to your email.");
-        } else {
-          if (back) back.hidden = false;
-          showCheckout("your payment didn't go through. go back and try again.");
+      try {
+        sessionStorage.setItem(LAST_CHECKOUT, JSON.stringify({ id: session.id, cart: JSON.stringify(cart.lines) }));
+      } catch { /* Stripe can take payment even when browser storage is blocked. */ }
+      const returnUrl = new URL("/preorder", location.origin);
+      returnUrl.searchParams.set("session_id", session.id);
+      form.hidden = true;
+      checkout.hidden = false;
+      mounted = sdk.createForm({ layout: "expanded" });
+      mounted.on("confirm", async (formConfirmEvent) => {
+        if (back.disabled || signal.aborted) return;
+        back.disabled = true;
+        message.textContent = "";
+        try {
+          const result = await loaded.actions.confirm({ formConfirmEvent });
+          if (signal.aborted) return;
+          if (result.type === "error") {
+            message.textContent = result.error.message;
+            back.disabled = false;
+            return;
+          }
+        } catch {
+          // Stripe may have accepted payment even if the browser lost its response.
         }
-      })
-      .catch(() => fail("couldn't confirm your payment. check your email for a receipt."));
-  }
-};
+        if (!signal.aborted) location.assign(returnUrl.href);
+      });
+      mounted.mount("#checkout-form");
+    } catch {
+      if (signal.aborted) return;
+      mounted?.destroy();
+      mounted = undefined;
+      form.hidden = false;
+      checkout.hidden = true;
+      error.textContent ||= "couldn’t open checkout. please try again.";
+    } finally {
+      form.inert = false;
+      form.removeAttribute("aria-busy");
+    }
+  });
+}
 
 document.addEventListener("astro:page-load", initCheckout);
-
-export {};
+initCheckout();

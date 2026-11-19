@@ -78,7 +78,8 @@ const init = () => {
     if (lines) renderCartLines(lines, cart, prices, (next) => writeCart(next));
     if (empty) empty.hidden = items > 0;
     if (foot) foot.hidden = items === 0;
-    if (total) total.value = money(cartTotal(cart, prices));
+    const subtotal = cartTotal(cart, prices);
+    if (total) total.value = subtotal === null ? "price unavailable" : money(subtotal);
   };
 
   // any change to the cart (here, in the drawer, or another tab) lands here

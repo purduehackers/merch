@@ -1,6 +1,7 @@
 // Writes paid orders into the pickup database in Notion, and keeps a per-day totals database
 // in step with it. Server-only: NOTION_TOKEN must never reach the browser. Same API version as
 // /api/notify (the sign-up list), which is a different database again.
+import { getSecret } from "astro:env/server";
 import { ORDER_SCHEMA, TOTALS_SCHEMA, dayTotals, orderDay, orderProperties, totalsProperties } from "./order-notion";
 
 const NOTION_VERSION = "2022-06-28";
@@ -9,7 +10,7 @@ type Session = Parameters<typeof orderProperties>[0];
 type Page = { id: string; created_time: string; properties: Parameters<typeof dayTotals>[0][number]["properties"] };
 
 const notion = async <T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> => {
-  const token = import.meta.env.NOTION_TOKEN;
+  const token = getSecret("NOTION_TOKEN");
   if (!token) throw new Error("NOTION_TOKEN is not set");
   const response = await fetch(`https://api.notion.com/v1/${path}`, {
     method: init.method ?? "GET",
@@ -20,7 +21,7 @@ const notion = async <T>(path: string, init: { method?: string; body?: unknown }
     },
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
   });
-  if (!response.ok) throw new Error(`Notion ${init.method ?? "GET"} ${path}: ${response.status} ${await response.text()}`);
+  if (!response.ok) throw new Error(`Notion ${init.method ?? "GET"} ${path}: ${response.status}`);
   return response.json() as Promise<T>;
 };
 
@@ -83,22 +84,19 @@ const oneAtATime = <T>(task: () => Promise<T>): Promise<T> => {
   return run;
 };
 
-const ordersDatabase = () => {
-  const id = import.meta.env.NOTION_ORDERS_DATABASE_ID;
-  if (!id) throw new Error("NOTION_ORDERS_DATABASE_ID is not set");
-  return id;
-};
-
 /**
  * Adds the order to the pickup database unless it's already there. Stripe can send the same
  * event more than once, so the Stripe session ID is checked first. Returns false for a repeat.
  */
-const recordOrder = async (session: Session) => {
-  const databaseId = ordersDatabase();
+const recordOrder = async (session: Session, databaseId: string) => {
   const title = await prepare(databaseId, ORDER_SCHEMA);
   const bySession = { property: "Stripe session", rich_text: { equals: session.id } };
 
-  if ((await queryAll(databaseId, bySession)).length) return false;
+  const existing = await queryAll(databaseId, bySession);
+  if (existing.length) {
+    if (existing.length > 1) await keepOldest(existing);
+    return false;
+  }
 
   await notion("pages", {
     method: "POST",
@@ -110,19 +108,12 @@ const recordOrder = async (session: Session) => {
   return true;
 };
 
-/**
- * Recounts the order's day from the pickup database and writes it to that day's row in the
- * totals database (making the row if it's the day's first order). Recounting rather than
- * adding on means a retried event or two orders at once can't throw the numbers off; the
- * latest order's day is always exact. Does nothing if NOTION_TOTALS_DATABASE_ID isn't set.
- */
-const updateDayTotals = async (session: Session) => {
-  const totalsId = import.meta.env.NOTION_TOTALS_DATABASE_ID;
-  if (!totalsId) return;
+/** Recompute a day's totals from pickup rows, including the latest paid order during indexing delays. */
+const updateDayTotals = async (session: Session, databaseId: string, totalsId: string) => {
   const day = orderDay(session);
 
   const [orders, title] = await Promise.all([
-    queryAll(ordersDatabase(), { property: "Ordered", date: { equals: day } }),
+    queryAll(databaseId, { property: "Ordered", date: { equals: day } }),
     prepare(totalsId, TOTALS_SCHEMA),
   ]);
   const properties = totalsProperties(day, dayTotals(orders, session), title);
@@ -148,9 +139,9 @@ const updateDayTotals = async (session: Session) => {
  * day in the totals database. Returns false for an order that was already recorded; its day is
  * recounted anyway, so a retry finishes totals that failed the first time.
  */
-export const recordPaidOrder = (session: Session) =>
+export const recordPaidOrder = (session: Session, databaseId: string, totalsId?: string) =>
   oneAtATime(async () => {
-    const added = await recordOrder(session);
-    await updateDayTotals(session);
+    const added = await recordOrder(session, databaseId);
+    if (totalsId) await updateDayTotals(session, databaseId, totalsId);
     return added;
   });

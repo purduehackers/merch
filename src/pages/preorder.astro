@@ -1,4 +1,5 @@
 ---
+import { getSecret } from "astro:env/server";
 import "../styles/preorder.css";
 import "../styles/cart.css";
 import Layout from "../components/layout.astro";
@@ -6,6 +7,9 @@ import PriceData from "../components/PriceData.astro";
 import { getPriceAmounts } from "../scripts/stripe-prices";
 
 const prices = await getPriceAmounts();
+const returning = Astro.url.searchParams.has("session_id");
+Astro.response.headers.set("Cache-Control", "private, no-store");
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
 ---
 
 <Layout
@@ -59,21 +63,30 @@ const prices = await getPriceAmounts();
                     />
                 </div>
             </div>
-            <p class="preorder__notice">
-                we do not have the means to ship merch on a large scale. merch
-                is for purdue students/those in the greater lafayette area
-                currently. reach out to request shipping at{" "}
-                <a href="mailto:phackers@purdue.edu">phackers@purdue.edu</a>.
-            </p>
-            <form class="preorder__form" action="/api/preorder" method="post">
+            <div class="preorder__notice">
+                <p>sold by The Afterhours Foundation, Inc. for pickup at Purdue.
+                    your statement will show <strong>AFTERHOURS FOUNDATION</strong>.</p>
+                <details>
+                    <summary>pickup, refunds &amp; privacy</summary>
+                    <p>for pickup timing or a shipping request, get in touch before you order.
+                        for cancellations, returns or refunds, email <a href="mailto:phackers@purdue.edu">phackers@purdue.edu</a>
+                        with the email address you used at checkout.</p>
+                    <p>Afterhours uses your pickup name, email and order details to fulfill
+                        your order and respond to requests. the pickup list is stored in Notion.
+                        Stripe handles your payment details under its <a href="https://stripe.com/privacy">privacy policy</a>.</p>
+                </details>
+                {getSecret("VERCEL_ENV") !== "production" && <p>Sandbox checkout · test payments only</p>}
+            </div>
+            <form class="preorder__form" method="post" hidden={returning}>
                 <a class="preorder__back preorder__back--shop" href="/#shop">&larr; back to the shop</a>
                 <div class="preorder__contact">
                     <label>
-                        <span>name</span>
+                        <span>pickup name</span>
                         <input
                             name="name"
                             type="text"
                             autocomplete="name"
+                            maxlength="200"
                             placeholder="wack hacker"
                             required
                         />
@@ -84,34 +97,36 @@ const prices = await getPriceAmounts();
                             name="email"
                             type="email"
                             autocomplete="email"
+                            maxlength="254"
                             placeholder="wackhacker@gmail.com"
                             required
                         />
                     </label>
                 </div>
-                <!-- filled from the cart (see scripts/preorder.ts); items are picked on the homepage -->
                 <p class="preorder__empty" data-cart-empty hidden>
                     your cart is empty. <a href="/#shop">pick something on the homepage</a>.
                 </p>
                 <ul class="preorder__summary" aria-label="your cart" tabindex="-1" data-cart-lines data-cart-focus></ul>
                 <div class="preorder__total">
-                    <span>total</span>
-                    <output data-preorder-total>0.00</output>
+                    <span>total (USD)</span>
+                    <output data-preorder-total>—</output>
                 </div>
                 <p class="preorder__error" role="alert" data-preorder-error></p>
-                <button class="preorder__next" type="submit">
+                <noscript>enable JavaScript to check out.</noscript>
+                <button class="preorder__next" type="submit" disabled>
                     next
                 </button>
             </form>
-            <div class="preorder__checkout" hidden>
-                <button class="preorder__back" type="button" data-checkout-back>
+            <div class="preorder__checkout" hidden={!returning}>
+                <button class="preorder__back" type="button" data-checkout-back hidden={returning}>
                     &larr; back
                 </button>
                 <p
                     class="preorder__checkout-message"
                     role="status"
                     data-checkout-message
-                ></p>
+                >{returning ? "checking your payment…" : ""}</p>
+                <a class="preorder__back" data-checkout-check hidden>check payment status</a>
                 <div id="checkout-form"></div>
             </div>
             <script>
