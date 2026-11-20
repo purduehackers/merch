@@ -24,7 +24,7 @@ const stripe = {
 test("renders purchased prices, variants, pickup and seller in HTML and text", async () => {
   const mail = await prepareOrderEmail(stripe, session, { shirt: "shirt_id", tote: "tote_id" });
   assert.equal(mail.to, session.customer_email);
-  for (const expected of ["ASCII TEE", "M × 1, L × 1", "SHIP IT TOTE", "$40.00", "$11.00", "$51.00", "Afterhours Foundation", "help@afterhours.foundation"]) {
+  for (const expected of ["ASCII TEE", "M × 1, L × 1", "SHIP IT TOTE", "$40.00", "$11.00", "$51.00", "Afterhours Foundation", "spring 2027 Hack Night", "30 days of purchase", "help@afterhours.foundation"]) {
     assert.ok(mail.html.includes(expected), expected);
     assert.ok(mail.text.includes(expected), expected);
   }

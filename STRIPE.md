@@ -33,7 +33,9 @@ The webhook uses the Checkout Session to deduplicate sends. Resend accepts repea
 
 Classify the shirt and socks as Clothing & Footwear, the tote as Purses and Handbags, and the keychain as General – Tangible Goods. Ordinary merchandise purchases receive payment receipts. Afterhours uses a separate product for charitable contributions.
 
-Automatic Tax is off for the current direct Indiana pickup fundraiser. Reassess collection if sales approach Indiana’s threshold, the fundraiser changes, or shipping expands. Consult [Indiana DOR Bulletin 10](https://www.in.gov/dor/files/sib10.pdf) and [Stripe’s tax codes](https://docs.stripe.com/tax/tax-codes).
+Automatic Tax is off for the direct Indiana pickup fundraiser. Track tangible-goods sales across Afterhours against Indiana’s $100,000 current-or-previous-calendar-year threshold. Keep the order ledger, refund and payout records, use of proceeds for exempt purposes, and records of volunteer labor. Reassess collection before expanding to shipping or reaching the threshold. File any sales-tax returns assigned in INTIME, including periods when no tax is due. [Indiana DOR Bulletin 10](https://www.in.gov/dor/files/sib10.pdf) · [Indiana sales-tax return instructions](https://www.in.gov/dor/files/st-103inst.pdf) · [IRS volunteer labor exclusion](https://www.irs.gov/charities-non-profits/volunteer-labor-exclusion-from-unrelated-trade-or-business)
+
+Use the paid pickup list to email buyers the date and location of the spring 2027 Hack Night. Handle cancellations within 30 days of purchase, refund orders Afterhours cannot fulfill, and offer a later pickup or refund if the window slips. Reconcile refunds in Stripe against the pickup list before handing out merchandise.
 
 ## Verification
 

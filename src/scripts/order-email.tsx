@@ -58,8 +58,8 @@ function Confirmation({ lines, total, pickupName }: Receipt) {
                       <td align="right" style={{ padding: "16px 0", borderTop: rule, color: accent, fontSize: 22, fontWeight: 600 }}>{price(total)}</td>
                     </tr></tfoot>
                   </table>
-                  <p style={{ lineHeight: 1.5, color: "#ddd", margin: "12px 0 28px" }}>Pick up at Purdue{pickupName && <> under <strong>{pickupName}</strong></>}.
-                    {" "}For pickup details or help with your order, email <a href="mailto:help@afterhours.foundation" style={{ color: accent }}>help@afterhours.foundation</a>.</p>
+                  <p style={{ lineHeight: 1.5, color: "#ddd", margin: "12px 0 28px" }}>Pick up at a spring 2027 Hack Night at Purdue{pickupName && <> under <strong>{pickupName}</strong></>}. We’ll email the date and location.
+                    {" "}To cancel within 30 days of purchase or get help, email <a href="mailto:help@afterhours.foundation" style={{ color: accent }}>help@afterhours.foundation</a>.</p>
                 </td></tr>
                 <tr><td style={{ borderTop: rule, padding: "16px 20px 28px", color: "#aaa", fontSize: 12, lineHeight: 1.5 }}>
                   Sold by The Afterhours Foundation, Inc.
