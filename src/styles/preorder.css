@@ -43,9 +43,9 @@ body {
 
 .preorder {
   /* panel scale: the 755.576x982 Figma panel fit into the left half of the viewport */
-  --s: min(50vw / 755.576, 100svh / 982);
+  --s: min(50vw / 755.576, (100svh - var(--sandbox-height, 0px)) / 982);
   position: fixed;
-  inset: 0;
+  inset: var(--sandbox-height, 0px) 0 0;
   overflow: hidden;
   color: #fff;
   background: #020202;
@@ -122,11 +122,15 @@ body {
   width: 100%;
   margin: 0;
   padding: 0 var(--gutter);
-  color: rgb(255 255 255 / 50%);
+  margin-top: clamp(1rem, 3vh, 2rem);
+  color: rgb(255 255 255 / 80%);
   font-family: "PolySans Slim", "PolySans Neutral", Arial, sans-serif;
-  font-size: calc(20 * var(--s));
-  line-height: 0.9;
+  font-size: max(.875rem, calc(17 * var(--s)));
+  line-height: 1.45;
 }
+
+.preorder__notice p { margin: .5em 0 0; }
+.preorder__notice summary { width: fit-content; cursor: pointer; }
 
 .preorder__notice a {
   color: inherit;
@@ -145,8 +149,21 @@ body {
   flex: 1;
   flex-direction: column;
   width: 100%;
-  margin-top: calc(34.5 * var(--s));
+  /* lets the cart list shrink and scroll instead of overflowing the panel */
+  min-height: 0;
+  margin: 0;
   padding: 0 var(--gutter);
+}
+
+.preorder__heading {
+  margin: 0;
+  font: 400 clamp(2.25rem, 4.25vw, 4.75rem)/.98 "PolySans Bulky", Arial, sans-serif;
+  letter-spacing: -.045em;
+}
+
+.preorder__pickup {
+  margin: .65rem 0 clamp(1.25rem, 3.4vh, 2.25rem);
+  font-size: clamp(1rem, 1.3vw, 1.25rem);
 }
 
 .preorder__contact {
@@ -158,12 +175,10 @@ body {
 
 .preorder__contact label {
   display: grid;
-  /* label -> box spacing; matches "select items" -> cards (26.1 - 19.2 legend height) */
   gap: calc(6.9 * var(--s));
 }
 
-.preorder__contact label > span,
-.preorder__items legend {
+.preorder__contact label > span {
   padding: 0;
   color: #fff;
   font-size: calc(24 * var(--s));
@@ -189,112 +204,113 @@ body {
   outline-offset: calc(3 * var(--s));
 }
 
-.preorder__items {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: calc(11.995 * var(--s));
-  box-sizing: border-box;
-  margin: calc(52.5 * var(--s)) 0 0;
-  padding: calc(26.1 * var(--s)) 0 0;
-  border: 0;
-}
-
-.preorder__items legend {
-  position: absolute;
-  top: 0;
-  left: 0;
-  margin: 0;
-}
-
-.preorder__item {
-  position: relative;
-  display: block;
-  aspect-ratio: 1;
-  background: #fffdf7;
-  cursor: pointer;
-}
-
-.preorder__item > img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  transition: opacity 120ms ease;
-}
-
-.preorder__item input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-/* keyboard focus only, so a mouse click doesn't leave a ring behind after deselecting */
-.preorder__item:has(input:focus-visible) {
-  outline: calc(2 * var(--s)) solid #fff;
-  outline-offset: calc(3 * var(--s));
-}
-
-/* selected: yellow ring + check badge */
-.preorder__item:has(input:checked) {
-  outline: calc(4 * var(--s)) solid #ffcd38;
-  outline-offset: calc(3 * var(--s));
-}
-
-.preorder__item::after {
-  content: "";
-  position: absolute;
-  top: calc(8 * var(--s));
-  right: calc(8 * var(--s));
-  width: calc(28 * var(--s));
-  height: calc(28 * var(--s));
-  border-radius: 50%;
-  background: #ffcd38 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 65% no-repeat;
-  opacity: 0;
-  transform: scale(0.6);
-  transition: opacity 120ms ease, transform 120ms ease;
-  pointer-events: none;
-}
-
-.preorder__item:has(input:checked)::after {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.preorder__item-name {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-/* summary + total are pushed to the bottom; new rows grow upward so the total never moves */
+/* summary + total are pushed to the bottom; new rows grow upward so the total never moves.
+   A long cart scrolls inside the panel instead of pushing the total off screen. */
 .preorder__summary {
   display: grid;
-  margin-top: auto;
-  padding-bottom: calc(8.5 * var(--s));
+  min-height: 0;
+  margin: auto 0 0;
+  padding: 0 0 calc(8.5 * var(--s));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   color: #fff;
   font-size: calc(20 * var(--s));
-  line-height: calc(36.64 * var(--s));
+  list-style: none;
+  outline: none;
 }
 
-.preorder__summary > div,
 .preorder__total {
   display: flex;
   justify-content: space-between;
-}
-
-.preorder__total {
   box-sizing: border-box;
   padding-top: calc(14 * var(--s));
   border-top: calc(1 * var(--s)) solid rgb(255 255 255 / 60%);
   font-size: calc(24 * var(--s));
   font-weight: 600;
+  line-height: calc(36.64 * var(--s));
+}
+
+/* the lab pages' summary rows: name … price */
+.preorder__summary > div {
+  display: flex;
+  justify-content: space-between;
+  line-height: calc(36.64 * var(--s));
+}
+
+/* cart lines (cart.css), at this page's scale and in its fonts */
+.preorder__summary .cart-line {
+  grid-template-columns: calc(52 * var(--s)) minmax(0, 1fr) auto calc(80 * var(--s)) calc(36 * var(--s));
+  gap: calc(14 * var(--s));
+  padding: calc(8 * var(--s)) 0;
+  border-top-color: rgb(255 255 255 / 18%);
+}
+
+.preorder__summary .cart-line:first-child {
+  border-top: 0;
+}
+
+.preorder__summary .cart-line__thumb {
+  width: calc(52 * var(--s));
+  height: calc(52 * var(--s));
+  padding: calc(4 * var(--s));
+}
+
+.preorder__summary .cart-line__name {
+  font-family: inherit;
+  font-size: calc(20 * var(--s));
+}
+
+.preorder__summary .cart-line__remove {
+  width: calc(36 * var(--s));
+  height: calc(36 * var(--s));
+}
+
+.preorder__summary .cart-line__remove svg {
+  width: calc(20 * var(--s));
+  height: calc(20 * var(--s));
+}
+
+.preorder__summary .cart-line__meta {
+  font-family: inherit;
+  font-size: calc(15 * var(--s));
+  font-weight: 400;
+}
+
+.preorder__summary .qty {
+  grid-template-columns: calc(34 * var(--s)) 2.5ch calc(34 * var(--s));
+  height: calc(34 * var(--s));
+  font-family: inherit;
+  font-weight: 400;
+}
+
+.preorder__summary .qty__step {
+  font-size: calc(18 * var(--s));
+}
+
+.preorder__summary .qty__value,
+.preorder__summary .cart-line__price {
+  font-family: inherit;
+  font-size: calc(18 * var(--s));
+  font-weight: 400;
+}
+
+.preorder__empty {
+  margin: auto 0 calc(16 * var(--s));
+  color: rgb(255 255 255 / 60%);
+  font-size: calc(20 * var(--s));
+}
+
+.preorder__empty a {
+  color: #fff;
+}
+
+.preorder__empty[hidden] {
+  display: none;
+}
+
+/* with the empty note showing it takes the push to the bottom instead */
+.preorder__empty:not([hidden]) + .preorder__summary {
+  margin-top: 0;
 }
 
 .preorder__form[hidden],
@@ -321,7 +337,7 @@ body {
   position: relative;
   flex: 1;
   min-height: 0;
-  margin-top: calc(34.5 * var(--s));
+  margin: 0;
   padding: 0 var(--gutter);
   overflow-y: auto;
 }
@@ -336,9 +352,20 @@ body {
   cursor: pointer;
 }
 
+/* the form's own back: a link to the shop, at the top of the column */
+.preorder__back--shop {
+  align-self: flex-start;
+  display: inline-block;
+  margin-bottom: calc(28 * var(--s));
+  text-decoration: none;
+}
+
 .preorder__back:hover {
   color: #fff;
 }
+
+.preorder__heading--payment { margin-bottom: 1.25rem; }
+.preorder__heading[tabindex="-1"]:focus { outline: none; }
 
 .preorder__back:focus-visible {
   outline: calc(2 * var(--s)) solid #fff;
@@ -358,10 +385,10 @@ body {
 .preorder__next {
   align-self: flex-end;
   display: block;
-  width: calc(149.139 * var(--s));
-  height: calc(33.224 * var(--s));
-  margin: calc(45 * var(--s)) 0 0;
-  padding: 0;
+  width: auto;
+  min-height: 44px;
+  margin: calc(20 * var(--s)) 0 0;
+  padding: .4em 1em;
   border: 0;
   color: #000;
   background: #fffdf7;
@@ -369,7 +396,53 @@ body {
   cursor: pointer;
 }
 
-.preorder__next:hover {
+.paid-order {
+  max-width: 34rem;
+  color: #fffdf7;
+  font-size: clamp(1rem, 1.45vw, 1.3rem);
+  line-height: 1.4;
+}
+.paid-order p { margin: .75em 0 1.25em; }
+.paid-order a { color: inherit; }
+.paid-order__frog {
+  display: block;
+  width: clamp(5rem, 9vw, 8rem);
+  height: auto;
+  margin: .8rem 0 1.25rem;
+  filter: drop-shadow(2px 3px 0 #fcd202);
+  transform: rotate(-5deg);
+}
+.paid-order .preorder__heading { color: #fcd202; }
+.paid-order__lines { padding: 0; margin: 1.5rem 0 0; list-style: none; }
+.paid-order__lines li,
+.paid-order__total:not([hidden]) {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .5em 0;
+  border-top: 1px solid #ffffff55;
+}
+.paid-order__total strong { font-variant-numeric: tabular-nums; }
+.paid-order .preorder__back { display: inline-block; margin: 0 0 .25rem; }
+@media (prefers-reduced-motion: no-preference) {
+  .paid-order:not([hidden]) .paid-order__frog {
+    animation: creatura-hop 1000ms ease-in-out;
+  }
+  @keyframes creatura-hop {
+    0% { transform: translateX(-1.6rem) rotate(-14deg); }
+    34% { transform: translate(-1rem, -1.15rem) rotate(4deg); }
+    55% { transform: translateX(-.45rem) rotate(-7deg) scale(1.08, .92); }
+    76% { transform: translate(-.2rem, -.45rem) rotate(1deg); }
+    92% { transform: rotate(-5deg) scale(1.04, .96); }
+  }
+}
+
+.preorder__next:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.preorder__next:not(:disabled):hover {
   color: #fff;
   background: #333;
 }
@@ -427,3 +500,43 @@ body {
 .preorder__letter--e2 span { transform: rotate(-6.18deg); }
 .preorder__letter--r3 { --x: 576.8; --y: 783.532; --bw: 441.072; --bh: 490.024; }
 .preorder__letter--r3 span { transform: rotate(-33.04deg); }
+
+@media (max-width: 800px), (max-height: 540px) {
+  .preorder {
+    --s: min(100vw / 520, 1.1px);
+    overflow-y: auto;
+  }
+
+  .preorder__panel {
+    position: relative;
+    inset: auto;
+    --gutter: 5vw;
+    width: 100%;
+    min-height: 100%;
+    height: auto;
+    padding-block: 1.5rem;
+  }
+
+  .preorder__word-art { display: none; }
+  .preorder__notice { font-size: 1rem; }
+  .preorder__form { flex: 0 0 auto; }
+  .preorder__contact { grid-template-columns: 1fr; row-gap: 1rem; }
+  .preorder__contact input { min-height: 2.75rem; font-size: 1rem; }
+  .preorder__summary { margin-top: 1.5rem; overflow: visible; }
+  .preorder__checkout { flex: 0 0 auto; overflow: visible; }
+  .preorder__next { width: 100%; }
+  .preorder__notice { margin-top: 1.5rem; }
+}
+
+@media (max-width: 480px) {
+  .preorder__summary .cart-line { grid-template-columns: 48px minmax(0, 1fr) auto; }
+  .preorder__summary .cart-line__thumb { width: 48px; height: 48px; }
+  .preorder__summary .qty { grid-template-columns: 40px 2.5ch 40px; height: 40px; }
+  .preorder__summary .cart-line__remove { width: 40px; height: 40px; }
+}
+
+@media (min-width: 801px) and (min-height: 541px) {
+  .preorder__panel:has(details[open]) { overflow-y: auto; }
+  .preorder__panel:has(details[open]) .preorder__form { min-height: max-content; }
+  .preorder__panel:has(details[open]) .preorder__checkout { flex-shrink: 0; }
+}

@@ -1,0 +1,117 @@
+.ph-dither-btn,
+.ph-dither-btn[data-tone="light"] {
+  --btn-bg: #000;
+  --pixel: #7d3bff;
+  --pixel-hover: #000;
+  --label: #fbf7ec;
+  --label-hover: #fbf7ec;
+}
+
+.ph-dither-btn[data-tone="dark"] {
+  --btn-bg: #fbf7ec;
+  --pixel: #fbf7ec;
+  --pixel-hover: #fcd202;
+  --label: #000;
+  --label-hover: #000;
+}
+
+.ph-dither-btn {
+  position: relative;
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0.75rem 1.5rem;
+  border: 0;
+  background: var(--btn-bg);
+  cursor: pointer;
+  font-family: Inconsolata, ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.025em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+/* cols × rows cells stretch to fill the button exactly, so none are cut off at the edges.
+   Pick cols/rows close to the button's own proportions to keep the cells near square. */
+.ph-dither-btn__pixels {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-template-rows: repeat(var(--rows), 1fr);
+  pointer-events: none;
+}
+
+.ph-dither-btn__pixel {
+  position: relative;
+  background: var(--pixel);
+}
+
+.ph-dither-btn__pixel::after {
+  position: absolute;
+  /* cells land on fractional pixels; overlapping each neighbour by 1px hides the
+     antialiased seams that otherwise show the layer below as grid lines */
+  inset: -1px;
+  background: var(--pixel-hover);
+  content: "";
+  opacity: 0;
+  /* the sweep takes ~320ms however many cells there are. --d (set by dither-spread.ts) is the
+     distance from the pointer, so it ripples out from there; --i adds the dithered noise. */
+  transition: opacity 0s calc((var(--d, 0) * 0.8 + var(--i) / var(--count) * 0.2) * 320ms);
+}
+
+.ph-dither-btn__label {
+  position: relative;
+  z-index: 1;
+  color: var(--label);
+  transition: color 200ms ease;
+}
+
+/* lit: set by the script in DitherButton.astro on hover and keyboard focus, after it has
+   worked out each cell's delay. (Plain :hover would start the transition before the script
+   runs, with the previous delays.) */
+.ph-dither-btn.is-lit .ph-dither-btn__pixel::after {
+  opacity: 1;
+}
+
+.ph-dither-btn.is-lit .ph-dither-btn__label {
+  color: var(--label-hover);
+}
+
+/* without scripts, fall back to plain hover and focus */
+@media (scripting: none) {
+  .ph-dither-btn:focus-visible .ph-dither-btn__pixel::after {
+    opacity: 1;
+  }
+
+  .ph-dither-btn:focus-visible .ph-dither-btn__label {
+    color: var(--label-hover);
+  }
+}
+
+@media (scripting: none) and (hover: hover) {
+  .ph-dither-btn:not([aria-disabled="true"]):hover .ph-dither-btn__pixel::after {
+    opacity: 1;
+  }
+
+  .ph-dither-btn:not([aria-disabled="true"]):hover .ph-dither-btn__label {
+    color: var(--label-hover);
+  }
+}
+
+/* no href: nothing to go to yet (e.g. preorder with an empty cart) */
+.ph-dither-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-dither-btn__pixel::after,
+  .ph-dither-btn__label {
+    transition: none;
+  }
+}

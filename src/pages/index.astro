@@ -4,7 +4,13 @@ import '../styles/main.css';
 import Layout from '../components/layout.astro';
 import Hero from '../components/hero.astro';
 ---
-<Layout>
+<Layout
+  title="Winter 2026 drop"
+  description="Preorder the Purdue Hackers winter 2026 drop: an ASCII side-scroller tee, a SHIP IT tote and socks, and a creatura keychain. Pick up at Purdue."
+>
+  <!-- the canvas draws MERCH only once PolySans Inky has loaded, and the tagline is in the pixel font -->
+  <link slot="head" rel="preload" href="https://f3ibyzhjurhjiwis.public.blob.vercel-storage.com/PolySans-Inky.woff2" as="font" type="font/woff2" crossorigin />
+  <link slot="head" rel="preload" href="/fonts/PixelHackers.woff2" as="font" type="font/woff2" crossorigin />
   <Hero />
   <script>
     import "../scripts/scroll";

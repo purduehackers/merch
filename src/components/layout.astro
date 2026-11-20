@@ -1,29 +1,97 @@
 ---
 import { ClientRouter } from "astro:transitions";
+import { getSecret } from "astro:env/server";
 import "../styles/transitions.css";
+
+type Props = {
+  /** the page's own name; the site name is added after it (none: just the site name) */
+  title?: string;
+  description?: string;
+  checkout?: boolean;
+};
+
+const DEFAULT_DESCRIPTION =
+  "Merch from Purdue Hackers, for the doers, makers, and dreamers. Limited drops every semester, picked up at Purdue.";
+
+const { title, description = DEFAULT_DESCRIPTION, checkout = false } = Astro.props;
+const site = checkout ? "Afterhours Foundation" : "Purdue Hackers Merch";
+const fullTitle = title ? `${title} · ${site}` : site;
+const sandbox = getSecret("VERCEL_ENV") !== "production";
+// absolute URLs from the request, so previews and the real domain each point at themselves
+const canonical = new URL(Astro.url.pathname, Astro.url.origin).href;
+const image = new URL("/og.jpg", Astro.url.origin).href;
 ---
-<html lang="en">
+<html lang="en" data-sandbox={sandbox || undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta property="og:type" content="website" />
-  
-  <meta property="og:title" content="Purdue Hackers Merch" />
-  <meta property="og:description" content="purdue hackers boutique. limited drops every semester." />
-  <meta property="og:image" content="{{OG_IMAGE_URL}}" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {checkout && <meta name="robots" content="noindex" />}
 
-    <title>merch</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    {!checkout && <>
+      <meta property="og:image" content={image} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content="MERCH in big letters under a burst of colourful shapes, beside someone in a Purdue Hackers jacket climbing a ladder" />
+      <meta name="twitter:card" content="summary_large_image" />
+    </>}
+
     <ClientRouter />
-    <link rel="icon" href="/bro/icon.svg" type="image/svg+xml">
+    <link rel="icon" href={checkout ? "/afterhours-icon.svg" : "/bro/icon.svg"} type="image/svg+xml">
     <link rel="prefetch" href="/archive">
-    <!-- Stripe.js must load from js.stripe.com, never bundled (PCI) -->
-    <script is:inline src="https://js.stripe.com/dahlia/stripe.js"></script>
+    <!-- the PolySans fonts are served from Vercel Blob -->
+    <link rel="preconnect" href="https://f3ibyzhjurhjiwis.public.blob.vercel-storage.com" crossorigin />
+    <slot name="head" />
   </head>
   <body>
+    {sandbox && <aside class="sandbox-strip" aria-label="Sandbox">
+      <strong>Sandbox</strong><span>Test payments only</span>
+    </aside>}
     <div class="page-shell">
       <slot />
     </div>
   </body>
 </html>
+
+<style is:global>
+  :root[data-sandbox] {
+    --sandbox-height: 2rem;
+    scroll-padding-top: var(--sandbox-height);
+  }
+  [data-sandbox] .page-shell { padding-top: var(--sandbox-height); }
+  .sandbox-strip {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 1000;
+    height: var(--sandbox-height);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .75rem;
+    border-bottom: 2px solid #0d0d0d;
+    background: #fcd202;
+    color: #0d0d0d;
+    font: 600 .875rem/1 system-ui, sans-serif;
+  }
+  .sandbox-strip strong {
+    padding: .2em .4em;
+    background: #0d0d0d;
+    color: #fcd202;
+    font: bold .8125rem/1 ui-monospace, monospace;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  [data-sandbox] .cart-drawer:modal {
+    top: var(--sandbox-height);
+    height: calc(100dvh - var(--sandbox-height));
+  }
+  [data-sandbox] dialog::backdrop { top: var(--sandbox-height); }
+</style>
