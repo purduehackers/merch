@@ -14,6 +14,7 @@ type ReceiptLine = { productId?: ProductId; item: string; sizes: string; quantit
 type Receipt = { lines: ReceiptLine[]; total: number; pickupName: string };
 
 function Confirmation({ lines, total, pickupName }: Receipt) {
+  const accent = "#4dabf4";
   const rule = "1px solid #353535";
   const mono = "'Courier New', Courier, monospace";
   return (
@@ -54,11 +55,11 @@ function Confirmation({ lines, total, pickupName }: Receipt) {
                     ))}</tbody>
                     <tfoot><tr>
                       <th scope="row" colSpan={3} align="left" style={{ padding: "16px 0", borderTop: rule, fontWeight: 500 }}>Total paid (USD)</th>
-                      <td align="right" style={{ padding: "16px 0", borderTop: rule, color: "#fff27f", fontSize: 22, fontWeight: 600 }}>{price(total)}</td>
+                      <td align="right" style={{ padding: "16px 0", borderTop: rule, color: accent, fontSize: 22, fontWeight: 600 }}>{price(total)}</td>
                     </tr></tfoot>
                   </table>
                   <p style={{ lineHeight: 1.5, color: "#ddd", margin: "12px 0 28px" }}>Pick up at Purdue{pickupName && <> under <strong>{pickupName}</strong></>}.
-                    {" "}For pickup details or help with your order, email <a href="mailto:help@afterhours.foundation" style={{ color: "#fff27f" }}>help@afterhours.foundation</a>.</p>
+                    {" "}For pickup details or help with your order, email <a href="mailto:help@afterhours.foundation" style={{ color: accent }}>help@afterhours.foundation</a>.</p>
                 </td></tr>
                 <tr><td style={{ borderTop: rule, padding: "16px 20px 28px", color: "#aaa", fontSize: 12, lineHeight: 1.5 }}>
                   Sold by The Afterhours Foundation, Inc.
