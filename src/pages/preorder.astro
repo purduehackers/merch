@@ -6,12 +6,15 @@ import PriceData from "../components/PriceData.astro";
 import { getPriceAmounts } from "../scripts/stripe-prices";
 
 const prices = await getPriceAmounts();
+const returning = Astro.url.searchParams.has("session_id");
+Astro.response.headers.set("Cache-Control", "private, no-store");
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
 ---
 
 <Layout
     title="Preorder"
-    description="Check out your Purdue Hackers merch preorder."
-    noindex
+    description="Preorder merch from Afterhours Foundation for pickup at Purdue."
+    checkout
 >
     <main class="preorder" aria-label="W2026 merch preorder">
         <section class="preorder__panel">
@@ -59,64 +62,80 @@ const prices = await getPriceAmounts();
                     />
                 </div>
             </div>
-            <p class="preorder__notice">
-                we do not have the means to ship merch on a large scale. merch
-                is for purdue students/those in the greater lafayette area
-                currently. reach out to request shipping at{" "}
-                <a href="mailto:phackers@purdue.edu">phackers@purdue.edu</a>.
-            </p>
-            <form class="preorder__form" action="/api/preorder" method="post">
-                <a class="preorder__back preorder__back--shop" href="/#shop">&larr; back to the shop</a>
+            <form class="preorder__form" method="post" hidden={returning}>
+                <a class="preorder__back preorder__back--shop" href="/#shop">&larr; Back to the shop</a>
+                <h1 class="preorder__heading">Your preorder</h1>
+                <p class="preorder__pickup">Pay today and pick up at a spring 2027 Hack Night at Purdue. We’ll email the date and location.</p>
                 <div class="preorder__contact">
                     <label>
-                        <span>name</span>
+                        <span>Pickup name</span>
                         <input
                             name="name"
                             type="text"
                             autocomplete="name"
-                            placeholder="wack hacker"
+                            maxlength="200"
                             required
                         />
                     </label>
                     <label>
-                        <span>email</span>
+                        <span>Email</span>
                         <input
                             name="email"
                             type="email"
                             autocomplete="email"
-                            placeholder="wackhacker@gmail.com"
+                            maxlength="254"
                             required
                         />
                     </label>
                 </div>
-                <!-- filled from the cart (see scripts/preorder.ts); items are picked on the homepage -->
                 <p class="preorder__empty" data-cart-empty hidden>
-                    your cart is empty. <a href="/#shop">pick something on the homepage</a>.
+                    Your cart is empty. <a href="/#shop">Shop the drop</a>.
                 </p>
                 <ul class="preorder__summary" aria-label="your cart" tabindex="-1" data-cart-lines data-cart-focus></ul>
                 <div class="preorder__total">
-                    <span>total</span>
-                    <output data-preorder-total>0.00</output>
+                    <span>Total (USD)</span>
+                    <output data-preorder-total>—</output>
                 </div>
                 <p class="preorder__error" role="alert" data-preorder-error></p>
-                <button class="preorder__next" type="submit">
-                    next
+                <noscript>Enable JavaScript to check out.</noscript>
+                <button class="preorder__next" type="submit" disabled>
+                    Continue to payment
                 </button>
             </form>
-            <div class="preorder__checkout" hidden>
-                <button class="preorder__back" type="button" data-checkout-back>
-                    &larr; back
+            <div class="preorder__checkout" hidden={!returning}>
+                <button class="preorder__back" type="button" data-checkout-back hidden={returning}>
+                    &larr; Edit preorder
                 </button>
+                {!returning && <h1 class="preorder__heading preorder__heading--payment" tabindex="-1">Payment</h1>}
                 <p
                     class="preorder__checkout-message"
                     role="status"
                     data-checkout-message
-                ></p>
+                >{returning ? "Checking your payment…" : ""}</p>
+                <a class="preorder__back" data-checkout-check hidden>Check payment status</a>
+                {returning && <section class="paid-order" data-paid-order hidden aria-labelledby="paid-heading">
+                    <img class="paid-order__frog" src="/preorder/keychain/frog.svg" width="112" height="85" alt="" />
+                    <h1 class="preorder__heading" id="paid-heading" tabindex="-1">Preorder confirmed!</h1>
+                    <p>Thank you from Afterhours Foundation.</p>
+                    <ul class="paid-order__lines" aria-label="Items ordered" data-paid-lines hidden></ul>
+                    <div class="paid-order__total" data-paid-total hidden>
+                        <span>Total paid</span><strong></strong>
+                    </div>
+                    <p>We’ll email the date and location for pickup at a spring 2027 Hack Night at Purdue. Questions? <a href="mailto:help@afterhours.foundation">help@afterhours.foundation</a></p>
+                    <a class="preorder__back" href="/#shop">&larr; Back to the shop</a>
+                </section>}
                 <div id="checkout-form"></div>
             </div>
+            <details class="preorder__notice">
+                <summary>Pickup, refunds &amp; privacy</summary>
+                <p>The Afterhours Foundation, Inc. sells this merch. Your statement shows <strong>AFTERHOURS FOUNDATION</strong>.</p>
+                <p>This preorder is for local pickup only. To cancel for a full refund, email <a href="mailto:help@afterhours.foundation">help@afterhours.foundation</a> within 30 days of purchase, before pickup.</p>
+                <p>If pickup moves past spring 2027, you can choose a later pickup or a full refund. If we can’t fulfill your order, we’ll refund you. If you receive a wrong or defective item, email us for a replacement or refund.</p>
+                <p>Afterhours keeps your pickup name, email and order in Notion to arrange pickup and answer questions.
+                    Resend emails your receipt. <a href="https://stripe.com/privacy">Stripe</a> handles your payment details.</p>
+            </details>
             <script>
                 import "../scripts/preorder";
-                import "../scripts/preorder-checkout";
             </script>
         </section>
         <div class="preorder__word-art" aria-hidden="true">

@@ -27,7 +27,7 @@ export const products: Product[] = [
   {
     id: "shirt",
     name: "shirt",
-    blurb: "black tee, ascii side-scroller",
+    blurb: "black tee with an ASCII side-scroller",
     title: ["ASCII", "TEE"],
     description: [
       "a black tee with an ascii side-scroller across the front: a little hacker at START!, platforms, fish and birds along the way.",
@@ -38,7 +38,7 @@ export const products: Product[] = [
   {
     id: "tote",
     name: "tote bag",
-    blurb: "black tote, ascii sailboat",
+    blurb: "black tote with a yellow ASCII sailboat",
     title: ["SHIP IT", "TOTE"],
     description: ["a black tote with an ascii sailboat on a dotted sea, and SHIP IT. underneath."],
     images: [{ src: "/preorder/figma-tote.webp", alt: "Black tote bag with a yellow ascii sailboat over blue dotted waves and the words SHIP IT." }],
@@ -47,7 +47,7 @@ export const products: Product[] = [
   {
     id: "socks",
     name: "socks",
-    blurb: "cream crew socks",
+    blurb: "cream crew socks with “Ship it” knit up the side",
     title: ["SHIP IT", "SOCKS"],
     description: ["cream ribbed crew socks with Ship it knit up the side in black."],
     images: [{ src: "/preorder/figma-socks.webp", alt: "Pair of cream crew socks with Ship it knit vertically up the side in black" }],
@@ -58,14 +58,14 @@ export const products: Product[] = [
     name: "keychain",
     blurb: "creatura + logo charms",
     title: ["CREATURA", "KEYCHAIN"],
-    description: ["two charms on a yellow ring: a creatura dino and the purdue hackers logo."],
-    images: [{ src: "/preorder/figma-keychain.webp", alt: "Keychain with a grey dinosaur charm and a yellow Purdue Hackers logo charm on a yellow ring" }],
+    description: ["a pixel logo and a frosted acrylic creatura on a yellow ring."],
+    images: [{ src: "/preorder/figma-keychain.webp", alt: "Keychain with a grey dinosaur charm and a yellow pixel logo charm on a yellow ring" }],
     oneSize: "one size",
     // the creatura charm varies; the glider (Purdue Hackers logo) charm is on every keychain.
     // Figma f2026-drop: frog 416:9, squirrel 416:12.
     variants: {
-      caption: "other creatura designs",
-      note: "creatura charm (frosted acrylic) is picked at random",
+      caption: "creatura designs",
+      note: "the creatura design is picked at random.",
       images: [
         { src: "/preorder/keychain/frog.svg", alt: "frog creatura charm", width: 322.912, height: 243.952, nodeId: "416:9" },
         { src: "/preorder/keychain/squirrel.svg", alt: "squirrel creatura charm", width: 308.412, height: 225.53, nodeId: "416:12" },

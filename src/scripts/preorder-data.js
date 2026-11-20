@@ -8,15 +8,3 @@ export function readPrices(doc = document) {
     return {};
   }
 }
-
-/**
- * @template {string} T
- * @param {T[]} values item ids
- * @param {Partial<Record<string, number>>} prices
- * @returns {{ name: T; price: number }[]} the ones that have a price
- */
-export function selectedItems(values, prices) {
-  return values
-    .filter((value) => prices[value] != null)
-    .map((name) => ({ name, price: /** @type {number} */ (prices[name]) }));
-}

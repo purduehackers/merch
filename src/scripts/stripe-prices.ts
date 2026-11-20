@@ -1,52 +1,46 @@
-// Server-only: each item's default Price from Stripe, for the current mode.
-// Stripe is the source of truth for what items cost; set the price on the
-// product in the Dashboard (Product → default price).
-import Stripe from 'stripe';
-import { stripeConfig } from './stripe-products';
+import { getSecret } from "astro:env/server";
+import type Stripe from "stripe";
+import { stripeConfig, type ProductIds } from "./stripe-products";
 
-export type StripePrice = { id: string; amount: number; currency: string };
+type PriceList = Record<string, { id: string; amount: number }>;
 
 const CACHE_MS = 5 * 60 * 1000;
-let cache: { at: number; prices: Promise<Record<string, StripePrice>> } | null = null;
+let cache: { expires: number; prices: Promise<PriceList>; products: ProductIds } | undefined;
 
-async function fetchPrices(): Promise<Record<string, StripePrice>> {
-  const config = stripeConfig();
-  if (!config.secretKey) throw new Error('Stripe is not configured');
-  const stripe = new Stripe(config.secretKey, { apiVersion: '2026-10-28.endive' });
+function usdUnitPrice(product: Stripe.Product) {
+  const price = product.default_price;
+  if (!product.active || !price || typeof price === "string" || !price.active) return null;
+  if (price.type !== "one_time" || price.currency !== "usd") return null;
 
-  const entries = await Promise.all(
-    Object.entries(config.productIds).map(async ([item, productId]) => {
-      const product = await stripe.products.retrieve(productId, { expand: ['default_price'] });
-      const price = product.default_price;
-      if (!price || typeof price === 'string' || price.unit_amount == null) {
-        throw new Error(`Stripe product ${productId} (${item}) has no default price`);
-      }
-      return [item, { id: price.id, amount: price.unit_amount / 100, currency: price.currency }] as const;
-    }),
-  );
-  return Object.fromEntries(entries);
+  const amount = price.unit_amount;
+  if (amount === null || !Number.isSafeInteger(amount) || amount <= 0) return null;
+  if (Number(price.unit_amount_decimal ?? amount) !== amount) return null;
+  return { id: price.id, amount };
 }
 
-/** Item id → default Stripe price, cached for a few minutes. Rejects if any item has no price. */
-export function getStripePrices(): Promise<Record<string, StripePrice>> {
-  if (!cache || Date.now() - cache.at > CACHE_MS) {
-    const prices = fetchPrices();
-    cache = { at: Date.now(), prices };
-    // don't keep a failed lookup around; retry on the next request
-    prices.catch(() => {
-      if (cache?.prices === prices) cache = null;
-    });
-  }
-  return cache.prices;
+export function getStripePrices(stripe: Stripe, products: ProductIds): Promise<PriceList> {
+  if (cache && cache.expires > Date.now() && cache.products === products) return cache.prices;
+
+  const prices = Promise.all(Object.entries(products).map(async ([item, id]) => {
+    const product = await stripe.products.retrieve(id, { expand: ["default_price"] });
+    const price = usdUnitPrice(product);
+    if (!price) throw new Error(`Invalid one-time USD price for ${item}`);
+    return [item, price] as const;
+  })).then(Object.fromEntries);
+  cache = { expires: Date.now() + CACHE_MS, prices, products };
+  prices.catch(() => { if (cache?.prices === prices) cache = undefined; });
+  return prices;
 }
 
-/** Item id → price in dollars, or {} if Stripe can't be reached (the page renders without prices). */
+/** Pages display dollars. Checkout compares and charges the integer cents returned by Stripe. */
 export async function getPriceAmounts(): Promise<Record<string, number>> {
+  const { stripe, productIds } = stripeConfig(getSecret);
+  if (!stripe) return {};
   try {
-    const prices = await getStripePrices();
-    return Object.fromEntries(Object.entries(prices).map(([item, price]) => [item, price.amount]));
-  } catch (error) {
-    console.error('Could not load Stripe prices:', error);
+    const prices = await getStripePrices(stripe, productIds);
+    return Object.fromEntries(Object.entries(prices).map(([item, price]) => [item, price.amount / 100]));
+  } catch {
+    console.error("Could not load merchandise prices");
     return {};
   }
 }
