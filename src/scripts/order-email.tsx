@@ -1,9 +1,9 @@
 import { render, toPlainText } from "@react-email/render";
 import type Stripe from "stripe";
 import type { OrderEmail } from "./resend-email";
-import { orderLines } from "./order-notion.ts";
+import { orderLines } from "./order-lines.ts";
+import type { CatalogPrice } from "./pluto.ts";
 import { products, type ProductId } from "./preorder-items-data.ts";
-import type { ProductIds } from "./stripe-products";
 
 const dollars = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const price = (cents: number) => dollars.format(cents / 100);
@@ -73,8 +73,11 @@ function Confirmation({ lines, total, pickupName }: Receipt) {
   );
 }
 
-/** Use the price paid on Stripe. Catalog prices can change between checkout and webhook delivery. */
-export async function prepareOrderEmail(stripe: Stripe, session: Stripe.Checkout.Session, productIds: ProductIds): Promise<OrderEmail> {
+/**
+ * Use the price paid on Stripe. Catalog prices can change between checkout and webhook delivery.
+ * Pluto's sale catalog maps each Stripe price to the store item it sells.
+ */
+export async function prepareOrderEmail(stripe: Stripe, session: Stripe.Checkout.Session, catalog: CatalogPrice[]): Promise<OrderEmail> {
   const to = session.customer_details?.email || session.customer_email;
   if (session.payment_status !== "paid" || session.currency !== "usd" || session.amount_total == null || !to)
     throw new Error("A paid USD order with a customer email is required for confirmation");
@@ -83,8 +86,8 @@ export async function prepareOrderEmail(stripe: Stripe, session: Stripe.Checkout
   if (purchased.has_more || !purchased.data.length) throw new Error("Incomplete Stripe order details");
   const variants = orderLines(session.metadata);
   const lines = purchased.data.map((line) => {
-    const id = line.price?.product;
-    const product = products.find((p) => productIds[p.id] === (typeof id === "string" ? id : id?.id));
+    const sku = catalog.find((price) => price.priceId === line.price?.id)?.sku;
+    const product = products.find((p) => p.id === sku);
     const sizes = variants.filter((v) => v.item === product?.id && v.size);
     if (line.currency !== "usd" || line.quantity == null) throw new Error("Invalid Stripe order item");
     return {

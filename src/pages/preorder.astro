@@ -3,7 +3,7 @@ import "../styles/preorder.css";
 import "../styles/cart.css";
 import Layout from "../components/layout.astro";
 import PriceData from "../components/PriceData.astro";
-import { getPriceAmounts } from "../scripts/stripe-prices";
+import { getPriceAmounts } from "../scripts/prices";
 
 const prices = await getPriceAmounts();
 const returning = Astro.url.searchParams.has("session_id");
@@ -13,7 +13,7 @@ Astro.response.headers.set("Referrer-Policy", "no-referrer");
 
 <Layout
     title="Preorder"
-    description="Preorder merch from Afterhours Foundation for pickup at Purdue."
+    description="Preorder merch from Afterhours for pickup at Purdue."
     checkout
 >
     <main class="preorder" aria-label="W2026 merch preorder">
@@ -116,7 +116,7 @@ Astro.response.headers.set("Referrer-Policy", "no-referrer");
                 {returning && <section class="paid-order" data-paid-order hidden aria-labelledby="paid-heading">
                     <img class="paid-order__frog" src="/preorder/keychain/frog.svg" width="112" height="85" alt="" />
                     <h1 class="preorder__heading" id="paid-heading" tabindex="-1">Preorder confirmed!</h1>
-                    <p>Thank you from Afterhours Foundation.</p>
+                    <p>Thank you from Afterhours.</p>
                     <ul class="paid-order__lines" aria-label="Items ordered" data-paid-lines hidden></ul>
                     <div class="paid-order__total" data-paid-total hidden>
                         <span>Total paid</span><strong></strong>
@@ -131,7 +131,7 @@ Astro.response.headers.set("Referrer-Policy", "no-referrer");
                 <p>The Afterhours Foundation, Inc. sells this merch. Your statement shows <strong>AFTERHOURS FOUNDATION</strong>.</p>
                 <p>This preorder is for local pickup only. To cancel for a full refund, email <a href="mailto:help@afterhours.foundation">help@afterhours.foundation</a> within 30 days of purchase, before pickup.</p>
                 <p>If pickup moves past spring 2027, you can choose a later pickup or a full refund. If we can’t fulfill your order, we’ll refund you. If you receive a wrong or defective item, email us for a replacement or refund.</p>
-                <p>Afterhours keeps your pickup name, email and order in Notion to arrange pickup and answer questions.
+                <p>Afterhours keeps your pickup name, email and order in its finance system to arrange pickup and answer questions.
                     Resend emails your receipt. <a href="https://stripe.com/privacy">Stripe</a> handles your payment details.</p>
             </details>
             <script>

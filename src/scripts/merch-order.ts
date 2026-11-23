@@ -1,14 +1,14 @@
-import type Stripe from "stripe";
 import { lineKey, MAX_QTY } from "./cart.ts";
-import { COLUMNS, itemsText, type OrderLine } from "./order-notion.ts";
-import type { ProductIds } from "./stripe-products.ts";
+import { COLUMNS, type OrderLine } from "./order-lines.ts";
+import { ONE_SIZE, RETURN_TARGET, type CheckoutLine } from "./pluto.ts";
 
-const MERCH_INTEGRATION = "purdue_hackers_merch";
 const UUID = /^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i;
 const isObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
-export function parseOrder(input: unknown) {
+export type Order = { attempt: string; expectedTotal: number; name: string; email: string; lines: OrderLine[] };
+
+export function parseOrder(input: unknown): Order | string {
   if (!isObject(input)) return "Invalid order";
   const { attempt, expected_total: expectedTotal } = input;
   const name = typeof input.name === "string" ? input.name.trim() : "";
@@ -37,33 +37,36 @@ export function parseOrder(input: unknown) {
     if (qty > MAX_QTY) return `Quantity must be 1–${MAX_QTY}`;
     merged.set(key, { item: product.item, size, qty });
   }
-  const lines = [...merged.values()];
-  const metadata = {
-    integration: MERCH_INTEGRATION,
-    name,
-    items: itemsText(lines),
-    lines: lines.map(({ item, size, qty }) => `${item}:${size ?? ""}:${qty}`).join(","),
-  };
-  return { attempt, expectedTotal, email, lines, metadata };
+  return { attempt, expectedTotal, name, email, lines: [...merged.values()] };
 }
 
-export function paymentState(session: Stripe.Checkout.Session) {
-  if (session.payment_status === "paid") return "paid";
-  if (session.status === "expired") return "expired";
-  if (session.status !== "complete") return "open";
-  const intent = session.payment_intent;
-  if (intent && typeof intent !== "string" &&
-      (intent.status === "requires_payment_method" || intent.status === "canceled")) return "failed";
+/** Pluto's payment session request. Each store item is a sale SKU, and each size is its variant. */
+export const paymentSession = (order: Order) => ({
+  kind: "merch" as const,
+  return_target: RETURN_TARGET,
+  cart: {
+    lines: order.lines.map(({ item, size, qty }) => ({ sku: item, variant: size ?? ONE_SIZE, quantity: qty })),
+    expected_total_minor: order.expectedTotal,
+    currency: "USD" as const,
+    pickup_name: order.name,
+    email: order.email,
+  },
+});
+
+/** Convert Pluto's checkout lines back to the store's item and size. */
+export const storeLines = (lines: CheckoutLine[]): OrderLine[] =>
+  lines.map(({ sku, variant, quantity }) => ({
+    item: sku,
+    size: variant === ONE_SIZE ? null : variant,
+    qty: quantity,
+  }));
+
+type CheckoutStatus = { session_status?: unknown; payment_status?: unknown };
+
+/** Card checkouts stay open after a decline, so a complete but unpaid session is still processing. */
+export function paymentState(status: CheckoutStatus) {
+  if (status.payment_status === "paid") return "paid";
+  if (status.session_status === "expired") return "expired";
+  if (status.session_status !== "complete") return "open";
   return "pending";
-}
-
-/** Verify older, untagged sessions by their Stripe product IDs before reading them or fulfilling them. */
-export async function isMerchSession(session: Stripe.Checkout.Session, live: boolean, products: ProductIds, stripe: Stripe) {
-  if (session.livemode !== live || session.mode !== "payment" || session.currency !== "usd") return false;
-  if (session.metadata?.integration) return session.metadata.integration === MERCH_INTEGRATION;
-  if (!session.metadata?.items) return false;
-  const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 100 });
-  const allowed = Object.values(products);
-  return items.data.length > 0 && !items.has_more && items.data.every(({ price }) =>
-    typeof price?.product === "string" && allowed.includes(price.product));
 }

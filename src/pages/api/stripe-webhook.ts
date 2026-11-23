@@ -1,16 +1,20 @@
 import type { APIRoute } from "astro";
 import { getSecret } from "astro:env/server";
 import type Stripe from "stripe";
-import { isMerchSession } from "../../scripts/merch-order";
-import { recordPaidOrder } from "../../scripts/notion";
 import { confirmOrderByEmail } from "../../scripts/order-confirmation";
-import { stripeConfig } from "../../scripts/stripe-products";
+import { PLUTO_MERCH_INTEGRATION, plutoConnection, plutoFetch, readCatalog } from "../../scripts/pluto";
+import { stripeConfig } from "../../scripts/store-config";
 
 export const prerender = false;
 
+/**
+ * Pluto records paid orders and pickup. This webhook only emails the buyer's confirmation, and only
+ * for paid sessions that Pluto confirms belong to this store's sale.
+ */
 export const POST: APIRoute = async ({ request }) => {
-  const { stripe, live, productIds, webhookSecret } = stripeConfig(getSecret);
-  if (!stripe || !webhookSecret) return new Response("Webhook is not configured", { status: 503 });
+  const { stripe, live, webhookSecret } = stripeConfig(getSecret);
+  const pluto = plutoConnection(getSecret);
+  if (!stripe || !webhookSecret || !pluto) return new Response("Webhook is not configured", { status: 503 });
 
   const signature = request.headers.get("stripe-signature");
   if (!signature) return new Response("Missing signature", { status: 400 });
@@ -24,26 +28,24 @@ export const POST: APIRoute = async ({ request }) => {
   if (event.type !== "checkout.session.completed" && event.type !== "checkout.session.async_payment_succeeded")
     return new Response(null, { status: 200 });
   const session = event.data.object;
-  if (session.payment_status !== "paid") return new Response(null, { status: 200 });
+  if (session.payment_status !== "paid" || session.metadata?.integration !== PLUTO_MERCH_INTEGRATION)
+    return new Response(null, { status: 200 });
+  // Sandbox orders do not send customer email.
+  if (!live) return new Response(null, { status: 200 });
 
   try {
-    if (!await isMerchSession(session, live, productIds, stripe)) return new Response(null, { status: 200 });
-    const databaseId = getSecret(live ? "NOTION_ORDERS_DATABASE_ID" : "NOTION_TEST_ORDERS_DATABASE_ID");
-    const totalsId = getSecret(live ? "NOTION_TOTALS_DATABASE_ID" : "NOTION_TEST_TOTALS_DATABASE_ID");
-    if (!live && !databaseId) return new Response("Sandbox order", { status: 200 });
-    const [pickup, confirmation] = await Promise.allSettled([
-      databaseId ? recordPaidOrder(session, databaseId, totalsId) : Promise.reject(new Error("Missing pickup database")),
-      live && session.metadata?.confirmation === "merch_email" ? confirmOrderByEmail(stripe, session, productIds, getSecret("RESEND_API_KEY")) : undefined,
-    ]);
-    if (pickup.status === "rejected" || confirmation.status === "rejected") {
-      console.error("Merchandise fulfillment incomplete", {
-        eventId: event.id, sessionId: session.id, pickup: pickup.status, confirmation: confirmation.status,
-      });
-      return new Response("Could not fulfill order", { status: 500 });
-    }
+    // The Stripe account serves other Pluto sales. Only this store's key can read its own sessions.
+    const owned = await plutoFetch(pluto, `/api/v1/payment-sessions/${encodeURIComponent(session.id)}`);
+    if (owned.status === 404) return new Response(null, { status: 200 });
+    if (!owned.ok) throw new Error(`Pluto session lookup failed (HTTP ${owned.status})`);
+    const status: unknown = await owned.json();
+    if (!status || typeof status !== "object" || !("payment_status" in status) || status.payment_status !== "paid")
+      return new Response(null, { status: 200 });
+    const catalog = await readCatalog(pluto);
+    await confirmOrderByEmail(stripe, session, catalog, getSecret("RESEND_API_KEY"));
     return new Response(null, { status: 200 });
   } catch {
-    console.error("Could not fulfill merchandise order", { eventId: event.id, sessionId: session.id });
-    return new Response("Could not fulfill order", { status: 500 });
+    console.error("Could not send merchandise confirmation", { eventId: event.id, sessionId: session.id });
+    return new Response("Could not send confirmation", { status: 500 });
   }
 };

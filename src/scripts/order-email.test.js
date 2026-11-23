@@ -15,14 +15,16 @@ const stripe = {
   checkout: { sessions: { listLineItems: async () => ({
     has_more: false,
     data: [
-      { price: { product: "shirt_id" }, amount_total: 4000, currency: "usd", quantity: 2 },
-      { price: { product: "tote_id" }, amount_total: 1100, currency: "usd", quantity: 1 },
+      { price: { id: "price_shirt" }, amount_total: 4000, currency: "usd", quantity: 2 },
+      { price: { id: "price_tote" }, amount_total: 1100, currency: "usd", quantity: 1 },
     ],
   }) } },
 };
+const price = (sku) => ({ sku, variants: [], priceId: `price_${sku}`, amount: 500 });
+const catalog = ["shirt", "socks", "tote", "keychain"].map(price);
 
 test("renders purchased prices, variants, pickup and seller in HTML and text", async () => {
-  const mail = await prepareOrderEmail(stripe, session, { shirt: "shirt_id", tote: "tote_id" });
+  const mail = await prepareOrderEmail(stripe, session, catalog);
   assert.equal(mail.to, session.customer_email);
   for (const expected of ["ASCII TEE", "M × 1, L × 1", "SHIP IT TOTE", "$40.00", "$11.00", "$51.00", "Afterhours Foundation", "spring 2027 Hack Night", "30 days of purchase", "help@afterhours.foundation"]) {
     assert.ok(mail.html.includes(expected), expected);
@@ -34,15 +36,14 @@ test("renders purchased prices, variants, pickup and seller in HTML and text", a
   assert.doesNotMatch(mail.text, /\.png/);
   assert.ok(mail.html.includes("&lt;Buyer&gt;"));
   assert.ok(!mail.html.includes(session.id));
-  await assert.rejects(prepareOrderEmail(stripe, { ...session, payment_status: "unpaid" }, {}));
+  await assert.rejects(prepareOrderEmail(stripe, { ...session, payment_status: "unpaid" }, catalog));
 });
 
 test("shows the matching photograph for each purchased product", async () => {
-  const ids = { shirt: "shirt_id", socks: "socks_id", tote: "tote_id", keychain: "keychain_id" };
-  const data = Object.values(ids).map((product) => ({ price: { product }, amount_total: 500, currency: "usd", quantity: 1 }));
+  const data = catalog.map(({ priceId }) => ({ price: { id: priceId }, amount_total: 500, currency: "usd", quantity: 1 }));
   const allProducts = { checkout: { sessions: { listLineItems: async () => ({ has_more: false, data }) } } };
   const mail = await prepareOrderEmail(allProducts, { ...session, amount_total: 2000,
-    metadata: { lines: "shirt:XXL:1,socks:L:1,tote::1,keychain::1" } }, ids);
+    metadata: { lines: "shirt:XXL:1,socks:L:1,tote::1,keychain::1" } }, catalog);
   assert.match(mail.text, /XXL/);
   assert.doesNotMatch(mail.html + mail.text, /(?:XXL|L) × 1/);
   const imageNames = Array.from(mail.html.matchAll(/<img [^>]*?src="https:\/\/[^"]+\/([^/"]+\.png)"/g), (match) => match[1]);
@@ -136,7 +137,7 @@ test("paid order email delivery claims", async (t) => {
     t.after(() => { if (previous === undefined) delete process.env[key]; else process.env[key] = previous; });
   }
 
-  const confirm = (id) => confirmOrderByEmail(stripe, { ...session, id }, { shirt: "shirt_id", tote: "tote_id" }, "fixture-key");
+  const confirm = (id) => confirmOrderByEmail(stripe, { ...session, id }, catalog, "fixture-key");
 
   await t.test("only one concurrent delivery runs, and a completed order is skipped on replay", { timeout: 5000 }, async (t) => {
     const started = Promise.withResolvers();

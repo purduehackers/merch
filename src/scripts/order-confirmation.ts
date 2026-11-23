@@ -2,7 +2,7 @@ import { BlobNotFoundError, del, head, put } from "@vercel/blob";
 import type Stripe from "stripe";
 import { ResendEmailRejection, sendOrderEmail } from "./resend-email";
 import { prepareOrderEmail } from "./order-email";
-import type { ProductIds } from "./stripe-products";
+import type { CatalogPrice } from "./pluto";
 
 async function findMarker(path: string) {
   try {
@@ -16,7 +16,7 @@ async function findMarker(path: string) {
 export async function confirmOrderByEmail(
   stripe: Stripe,
   session: Stripe.Checkout.Session,
-  productIds: ProductIds,
+  catalog: CatalogPrice[],
   apiKey: string | undefined,
 ) {
   // The store also hosts public artwork. Keep buyer data and Stripe session IDs out of it.
@@ -26,7 +26,7 @@ export async function confirmOrderByEmail(
   if (await findMarker(`${path}/complete`)) return;
   if (!apiKey) throw new Error("Order email is not configured");
 
-  const email = await prepareOrderEmail(stripe, session, productIds);
+  const email = await prepareOrderEmail(stripe, session, catalog);
   const sending = `${path}/sending`;
   const previous = await findMarker(sending);
   const now = Date.now();

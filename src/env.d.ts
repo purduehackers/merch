@@ -8,13 +8,9 @@ declare module '*.JPG' {
 	export default metadata;
 }
 interface ImportMetaEnv {
-	/** Notion integration token (shared by the sign-up list and the pickup database) */
+	/** Notion integration token for the "notify me" sign-up list */
 	readonly NOTION_TOKEN?: string;
 	/** the "notify me" sign-up list (/api/notify) */
 	readonly NOTION_DATABASE_ID?: string;
 	readonly NOTION_EMAIL_PROPERTY?: string;
-	/** the pickup database paid orders go into (/api/stripe-webhook) */
-	readonly NOTION_ORDERS_DATABASE_ID?: string;
-	/** quantities added up per day, kept in step by /api/stripe-webhook (optional) */
-	readonly NOTION_TOTALS_DATABASE_ID?: string;
 }

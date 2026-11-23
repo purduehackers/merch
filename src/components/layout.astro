@@ -14,7 +14,7 @@ const DEFAULT_DESCRIPTION =
   "Merch from Purdue Hackers, for the doers, makers, and dreamers. Limited drops every semester, picked up at Purdue.";
 
 const { title, description = DEFAULT_DESCRIPTION, checkout = false } = Astro.props;
-const site = checkout ? "Afterhours Foundation" : "Purdue Hackers Merch";
+const site = checkout ? "Afterhours" : "Purdue Hackers Merch";
 const fullTitle = title ? `${title} · ${site}` : site;
 const sandbox = getSecret("VERCEL_ENV") !== "production";
 // absolute URLs from the request, so previews and the real domain each point at themselves

@@ -93,10 +93,9 @@ async function showPaymentStatus(sessionId: string, checkout: HTMLElement, signa
       case "pending":
         message.textContent = "Your payment is processing. Check its status before placing another order.";
         break;
-      case "failed":
       case "expired":
       case "open":
-        message.textContent = state === "failed" ? "Your payment failed." : "You haven’t paid for this order.";
+        message.textContent = "You haven’t paid for this order.";
         check.textContent = "Return to your cart";
         check.href = "/preorder";
         break;
@@ -177,8 +176,8 @@ export function initCheckout(
         signal,
       });
       if (!response.ok) {
-        if (response.status === 409) error.textContent = "Your order changed. Reload your cart to review the prices.";
-        if (response.status === 400) error.textContent = await response.text();
+        // Pluto explains a closed sale, a changed price or a catalog limit in one sentence.
+        if ([400, 409, 429].includes(response.status)) error.textContent = await response.text();
         throw new Error();
       }
       const session = await response.json();
