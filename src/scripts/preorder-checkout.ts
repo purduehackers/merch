@@ -178,6 +178,8 @@ export function initCheckout(
       if (!response.ok) {
         // Pluto explains a closed sale, a changed price or a catalog limit in one sentence.
         if ([400, 409, 429].includes(response.status)) error.textContent = await response.text();
+        // Pluto keeps a refusal for its attempt, so the next try of this order starts a new attempt.
+        if ([400, 409].includes(response.status)) previousOrder = "";
         throw new Error();
       }
       const session = await response.json();

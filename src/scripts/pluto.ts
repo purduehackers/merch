@@ -1,8 +1,22 @@
 // Pluto owns this store's checkout. It reads prices from the sale catalog, creates the Stripe
-// Checkout Session, records the paid order and tracks pickup. Every request uses the sale's
-// installation key from the server; the browser never sees it.
+// Checkout Session, records the paid order and tracks pickup. Every request uses the key of the
+// sale's storefront app from the server; the browser never sees it.
 
 type ReadEnv = (name: string) => string | undefined;
+
+/** A storefront app key: its environment, 40 random characters and a 6-character checksum. */
+const APP_KEYS = {
+  live: /^pluto_sk_live_[0-9A-Za-z]{46}$/,
+  test: /^pluto_sk_test_[0-9A-Za-z]{46}$/,
+};
+
+/**
+ * Accept a storefront app key of this deployment's environment, or the former sale key.
+ * Production accepts only live keys, so a test key cannot open checkout there. Pluto checks the checksum.
+ * Remove the `pluto_site_` branch after Pluto revokes the former sale keys.
+ */
+export const acceptedKey = (key: string, live: boolean) =>
+  key.startsWith("pluto_site_") || APP_KEYS[live ? "live" : "test"].test(key);
 
 /** The Pluto sale for this store uses this return target. Pluto rejects checkouts that name another. */
 export const RETURN_TARGET = "purdue-hackers-merch";
@@ -33,7 +47,7 @@ export function plutoConnection(get: ReadEnv): PlutoConnection | null {
   }
   const local = base.protocol === "http:" && /^(?:localhost|127\.0\.0\.1|\[::1\])$/.test(base.hostname);
   if (!(base.protocol === "https:" || (!live && local)) || base.username || base.password) return null;
-  if (!key.startsWith("pluto_site_")) return null;
+  if (!acceptedKey(key, live)) return null;
   return { origin: base.origin, key, bypass: get("PLUTO_PROTECTION_BYPASS") || undefined };
 }
 
@@ -54,15 +68,25 @@ export function plutoFetch(connection: PlutoConnection, path: string, init: Requ
   });
 }
 
-/** Pluto's own sentence for a rejected request, such as a closed sale or a changed price. */
-export async function plutoMessage(response: Response) {
+export type PlutoProblem = { code: string; message: string; requestId: string };
+
+/**
+ * Read a rejected Pluto request: its code and its sentence, such as a closed sale or a changed price.
+ * Pluto sends an RFC 9457 problem document with `code` and `detail`. Its former API sent
+ * `{ error: { code, message } }`. An unreadable body gives an empty code and sentence.
+ */
+export async function plutoProblem(response: Response): Promise<PlutoProblem> {
+  const requestId = response.headers.get("pluto-request-id") ?? "";
+  let body: unknown;
   try {
-    const body: unknown = await response.json();
-    const message = isObject(body) && isObject(body.error) ? body.error.message : undefined;
-    return typeof message === "string" ? message.slice(0, 300) : "";
+    body = await response.json();
   } catch {
-    return "";
+    return { code: "", message: "", requestId };
   }
+  const source = isObject(body) && isObject(body.error) ? body.error : body;
+  const code = isObject(source) && typeof source.code === "string" ? source.code : "";
+  const text = isObject(source) ? (source.detail ?? source.message) : undefined;
+  return { code, message: typeof text === "string" ? text.slice(0, 300) : "", requestId };
 }
 
 function catalogPrice(value: unknown): CatalogPrice | null {

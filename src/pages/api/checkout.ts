@@ -1,7 +1,8 @@
 import type { APIRoute } from "astro";
 import { getSecret } from "astro:env/server";
 import { parseOrder, paymentSession, paymentState, storeLines } from "../../scripts/merch-order";
-import { checkoutLines, matchesEnvironment, plutoConnection, plutoFetch, plutoMessage } from "../../scripts/pluto";
+import { checkoutLines, matchesEnvironment, plutoConnection, plutoFetch, plutoProblem } from "../../scripts/pluto";
+import { plutoWebhookSecret } from "../../scripts/pluto-webhook";
 import { isStoreOrigin, stripeConfig } from "../../scripts/store-config";
 
 export const prerender = false;
@@ -34,26 +35,39 @@ async function readOrder(request: Request) {
   }
 }
 
-/** Live orders open only when the webhook can send the confirmation email. */
+/**
+ * Live orders open only when a webhook can send the confirmation email. The Pluto webhook replaces
+ * the Stripe webhook; either one is enough while both exist.
+ */
 function canConfirm(live: boolean) {
   if (!live) return true;
   const { stripe, webhookSecret } = stripeConfig(getSecret);
-  return Boolean(stripe && webhookSecret && getSecret("RESEND_API_KEY"));
+  return Boolean(stripe && (webhookSecret || plutoWebhookSecret(getSecret)) && getSecret("RESEND_API_KEY"));
 }
 
-/** Pluto's rejection, phrased for the buyer. Configuration problems stay private. */
+/**
+ * Pluto's rejection, phrased for the buyer. Configuration problems stay private.
+ * Pluto keeps the answer to an idempotency key, so a refused order needs a new attempt; the browser
+ * starts one after a 400 or 409. A request that still runs under the key gets a 503 instead, and the
+ * same attempt then receives the stored session.
+ */
 async function rejected(response: Response) {
-  const message = await plutoMessage(response);
+  const { code, message, requestId } = await plutoProblem(response);
+  if (code === "idempotency_key_in_use")
+    return new Response("Checkout is still starting. Try again in a few seconds.", { status: 503 });
+  if (code === "idempotency_key_reused")
+    return new Response("Your order changed. Reload your cart to review the prices.", { status: 409 });
   if (response.status === 409)
     return new Response(message || "Your order changed. Reload your cart to review the prices.", { status: 409 });
-  if (response.status === 400)
+  if (response.status === 400 || response.status === 422)
     return new Response(message || "Check your cart and try again.", { status: 400 });
   if (response.status === 429)
     return new Response("Too many checkout attempts. Wait a minute and try again.", { status: 429 });
   if ([401, 403, 404].includes(response.status)) {
-    console.error("Pluto refused the store's checkout key", { status: response.status });
+    console.error("Pluto refused the store's checkout key", { status: response.status, code, requestId });
     return new Response("Checkout is unavailable", { status: 503 });
   }
+  console.error("Pluto could not start the checkout", { status: response.status, code, requestId });
   return new Response("Could not start checkout", { status: 502 });
 }
 
